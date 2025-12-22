@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+
+  interface_usuarios:
+    build: ./interfaces/interface_usuarios
+    ports:
+      - "5001:5001"
+    environment:
+      - SERVICO_HOST=servico_usuarios
+      - SERVICO_PORT=6001
+    depends_on:
+      - servico_usuarios
+
+  interface_agendamento:
+    build: ./interfaces/interface_agendamento
+    ports:
+      - "5002:5002"
+    environment:
+      - SERVICO_HOST=servico_agendamento
+      - SERVICO_PORT=6002
+    depends_on:
+      - servico_agendamento
+
+  interface_notificacoes:
+    build: ./interfaces/interface_notificacoes
+    ports:
+      - "5003:5003"
+    depends_on:
+      - rabbitmq
+
+  servico_usuarios:
+    build: ./servicos/usuarios
+    ports:
+      - "6001:6001"
+
+  servico_agendamento:
+    build: ./servicos/agendamento
+    ports:
+      - "6002:6002"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"

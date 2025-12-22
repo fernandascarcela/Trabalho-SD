@@ -29,80 +29,112 @@ def enviar_para_servico(acao, dados):
         return json.loads(resposta.decode())
 
     except Exception as e:
-        raise RuntimeError(f"Erro ao comunicar com serviço TCP: {e}")
+        return {"erro": f"Erro TCP: {e}"}
 
 
-# ---------- Util ----------
 def json_invalido():
     return jsonify({"erro": "JSON inválido"}), 400
 
 
-# ---------- Endpoints ----------
-@app.post("/usuarios")
-def criar_usuario():
+# ---------- PACIENTE ----------
+@app.post("/paciente/registro")
+def registrar():
     if not request.is_json:
         return json_invalido()
 
     body = request.json
-    obrigatorios = ["nome", "email", "senha"]
+    obrigatorios = [
+        "nome_paciente",
+        "email_paciente",
+        "senha_paciente",
+    ]
 
     if not all(c in body for c in obrigatorios):
-        return jsonify({"erro": "Campos obrigatórios: nome, email, senha"}), 400
+        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
 
-    try:
-        resposta = enviar_para_servico("criar_usuario", body)
-        return jsonify(resposta), 201
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+    resposta = enviar_para_servico(
+        "paciente_registrar",
+        body
+    )
+
+    return jsonify(resposta), 201 if "erro" not in resposta else 400
 
 
-@app.post("/usuarios/login")
-def login():
+@app.delete("/paciente/excluir")
+def excluir():
     if not request.is_json:
         return json_invalido()
 
     body = request.json
-    if "email" not in body or "senha" not in body:
-        return jsonify({"erro": "Campos obrigatórios: email, senha"}), 400
+    obrigatorios = [
+        "email_paciente",
+        "senha_paciente",
+    ]
 
-    try:
-        resposta = enviar_para_servico("login", body)
-        return jsonify(resposta)
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+    if not all(c in body for c in obrigatorios):
+        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
+
+    resposta = enviar_para_servico(
+        "paciente_excluir",
+        body
+    )
+
+    return jsonify(resposta), 201 if "erro" not in resposta else 400
 
 
-@app.patch("/usuarios")
-def editar_usuario():
+
+# ---------- ADMIN ----------
+@app.post("/admin/medico/criar")
+def admin_criar_medico():
     if not request.is_json:
         return json_invalido()
 
     body = request.json
-    if "email" not in body or "senha" not in body:
-        return jsonify({"erro": "Campos obrigatórios: email, senha"}), 400
+    obrigatorios = [
+        "email_admin",
+        "senha_admin",
+        "nome_medico",
+        "email_medico",
+        "senha_medico",
+        "especialidade"
+    ]
 
-    try:
-        resposta = enviar_para_servico("editar_usuario", body)
-        return jsonify(resposta)
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+    if not all(c in body for c in obrigatorios):
+        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
+
+    resposta = enviar_para_servico(
+        "admin_criar_medico",
+        body
+    )
+
+    return jsonify(resposta), 201 if "erro" not in resposta else 400
 
 
-@app.delete("/usuarios/")
-def excluir_usuario():
+@app.post("/admin/paciente/criar")
+def admin_criar_paciente():
     if not request.is_json:
         return json_invalido()
 
     body = request.json
-    if "email" not in body or "senha" not in body:
-        return jsonify({"erro": "Campos obrigatórios: email, senha"}), 400
+    obrigatorios = [
+        "email_admin",
+        "senha_admin",
+        "nome_paciente",
+        "email_paciente",
+        "senha_paciente"
+    ]
 
-    try:
-        resposta = enviar_para_servico("excluir_usuario", body)
-        return jsonify(resposta)
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+    if not all(c in body for c in obrigatorios):
+        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
+
+    resposta = enviar_para_servico(
+        "admin_criar_paciente",
+        body
+    )
+
+    return jsonify(resposta), 201 if "erro" not in resposta else 400
 
 
+# ---------- MAIN ----------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
