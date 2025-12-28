@@ -7,7 +7,7 @@ QUEUE_NAME = "notificacoes_paciente"
 
 def callback(ch, method, properties, body):
     mensagem = json.loads(body)
-    print("\n📢 NOVA NOTIFICAÇÃO RECEBIDA")
+    print("\nNOVA NOTIFICAÇÃO RECEBIDA")
     print(f"Consulta ID: {mensagem['consulta_id']}")
     print(f"Status: {mensagem['status']}")
     print(f"Mensagem: {mensagem['mensagem']}")
@@ -15,7 +15,7 @@ def callback(ch, method, properties, body):
 
 
 def main():
-    print("🔔 Aguardando notificações... (CTRL+C para sair)")
+    print("Aguardando notificações... (CTRL+C para sair)")
 
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host=RABBITMQ_HOST)
