@@ -2,6 +2,29 @@ version: "3.9"
 
 services:
 
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_DB: clinic_management_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - persistence-network
+
+  rabbitmq:
+     image: rabbitmq:3-management
+     container_name: rabbitmq
+     ports:
+      - "5672:5672"
+      - "15672:15672"
+     networks:
+        - messaging-network
+
   interface_usuarios:
     build: ./interfaces/interface_usuarios
     ports:
@@ -22,12 +45,15 @@ services:
     depends_on:
       - servico_agendamento
 
-  interface_notificacoes:
-    build: ./interfaces/interface_notificacoes
-    ports:
-      - "5003:5003"
+  notification-service:
+    container_name: notification-service
+    build: ./servicos/servico_notificacoes
     depends_on:
+      - postgres
       - rabbitmq
+    networks:
+        - persistence-network
+        - messaging-network
 
   servico_usuarios:
     build: ./servicos/usuarios
@@ -39,8 +65,10 @@ services:
     ports:
       - "6002:6002"
 
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+networks:
+  persistence-network:
+    driver: bridge
+    
+  messaging-network:
+    driver: bridge
+
