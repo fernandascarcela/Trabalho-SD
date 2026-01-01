@@ -17,11 +17,15 @@ def criar_usuario(args):
         "role": args.role,
         "nome": args.nome,
         "email": args.email,
-        "senha": args.senha
+        "senha": args.senha,
     }
 
     if args.role == "medico" and args.especialidade:
-        payload["especialidade"] = args.especialidade
+        payload["especialidade"] = args.especialidade,
+        payload["crm"] = args.crm,
+    
+    if args.role == "paciente":
+        payload["cpf"] = args.cpf
 
     endpoint = "admin" if args.perfil_operador == "admin" else "recepcionista"
     try:
@@ -97,7 +101,9 @@ def main():
     criar.add_argument("nome")
     criar.add_argument("email")
     criar.add_argument("senha")
-    criar.add_argument("--especialidade", required=False)
+    criar.add_argument("--especialidade", choices=["pediatra", "psicologo", "nutricionista", "dermatologista", "fisioterapeuta"], required=False)
+    criar.add_argument("--crm", help="Número do CRM (se médico)", required=False)
+    criar.add_argument("--cpf", help="CPF do paciente (se paciente)", required=False)
     criar.set_defaults(func=criar_usuario)
 
     # ---- Editar ----
