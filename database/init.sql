@@ -1,6 +1,7 @@
 CREATE TYPE user_type_enum AS ENUM ('PACIENTE', 'MEDICO', 'RECEPCIONISTA', 'ADMIN');
 CREATE TYPE weekday_enum AS ENUM ( 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA');
-CREATE TYPE appointment_status_enum AS ENUM ('AGENDADO', 'CONFIRMADO', 'CANCELADO', 'CONCLUÍDO', 'REJEITADA');
+CREATE TYPE appointment_status_enum AS ENUM ('AGENDADO', 'CONFIRMADO', 'PENDENTE', 'CANCELADO', 'CONCLUÍDO', 'REJEITADA');
+CREATE TYPE specialty_enum AS ENUM ('FISIOTERAPEUTA', 'NUTRICIONISTA', 'PISCIQUIATRA', 'DERMATOLOGISTA', 'PEDIATRIA');
 
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
@@ -14,7 +15,6 @@ CREATE TABLE patient (
     patient_id SERIAL PRIMARY KEY,
     user_id INT UNIQUE NOT NULL,
     cpf VARCHAR(14) UNIQUE NOT NULL,
-    birth_date DATE NOT NULL,
 
     CONSTRAINT fk_patient_user
         FOREIGN KEY (user_id)
@@ -26,7 +26,7 @@ CREATE TABLE doctor (
     doctor_id SERIAL PRIMARY KEY,
     user_id INT UNIQUE NOT NULL,
     crm VARCHAR(20) UNIQUE NOT NULL,
-    specialty VARCHAR(100) NOT NULL,
+    specialty specialty_enum NOT NULL,
 
     CONSTRAINT fk_doctor_user
         FOREIGN KEY (user_id)
@@ -41,17 +41,21 @@ CREATE TABLE insurance (
 
 CREATE TABLE schedule (
     schedule_id SERIAL PRIMARY KEY,
+    doctor_id INT NOT NULL, 
     weekday weekday_enum NOT NULL,
     start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
+    specialty specialty_enum NOT NULL,
+    is_available BOOLEAN DEFAULT TRUE, --flag de disponivel genter
 
-    CONSTRAINT valid_schedule CHECK (start_time < end_time)
+    CONSTRAINT fk_schedule_doctor
+        FOREIGN KEY (doctor_id)
+        REFERENCES doctor(doctor_id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE appointment (
     appointment_id SERIAL PRIMARY KEY,
     patient_id INT NOT NULL,
-    doctor_id INT NOT NULL,
     insurance_id INT,
     schedule_id INT NOT NULL,
     status appointment_status_enum DEFAULT 'AGENDADO',
@@ -59,11 +63,6 @@ CREATE TABLE appointment (
     CONSTRAINT fk_appointment_patient
         FOREIGN KEY (patient_id)
         REFERENCES patient(patient_id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_appointment_doctor
-        FOREIGN KEY (doctor_id)
-        REFERENCES doctor(doctor_id)
         ON DELETE CASCADE,
 
     CONSTRAINT fk_appointment_insurance
@@ -135,32 +134,8 @@ AFTER INSERT ON notification
 FOR EACH ROW
 EXECUTE FUNCTION notify_new_notification();
 
--- MOCKANDO HORARIOS
-INSERT INTO schedule (weekday, start_time, end_time)
+-- MOCKANDO O PRIMEIRO ADMIN 
+INSERT INTO users (name, email, password, user_type)
 VALUES
-('SEGUNDA', '08:00', '10:00'),
-('SEGUNDA', '10:00', '12:00'),
-('SEGUNDA', '13:00', '15:00'),
-('SEGUNDA', '15:00', '17:00'),
-
-('TERCA', '08:00', '10:00'),
-('TERCA', '10:00', '12:00'),
-('TERCA', '13:00', '15:00'),
-('TERCA', '15:00', '17:00'),
-
-('QUARTA', '08:00', '10:00'),
-('QUARTA', '10:00', '12:00'),
-('QUARTA', '13:00', '15:00'),
-('QUARTA', '15:00', '17:00'),
-
-('QUINTA', '08:00', '10:00'),
-('QUINTA', '10:00', '12:00'),
-('QUINTA', '13:00', '15:00'),
-('QUINTA', '15:00', '17:00'),
-
-('SEXTA', '08:00', '10:00'),
-('SEXTA', '10:00', '12:00'),
-('SEXTA', '13:00', '15:00'),
-('SEXTA', '15:00', '17:00');
-
+('Admin', 'admin@gmail.com', 'admin123', 'ADMIN')
 
