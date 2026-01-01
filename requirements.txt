@@ -2,3 +2,5 @@ requests
 pika
 rich
 flask
+grpcio
+grpcio-tools

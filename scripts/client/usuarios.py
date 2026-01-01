@@ -4,6 +4,7 @@ import sys
 
 
 def criar_usuario(args):
+
     if args.perfil_operador == "recepcionista" and args.role != "paciente":
         print(f"\nERRO: Como {args.perfil_operador}, você só tem permissão para criar 'paciente'.")
         print(f"Tentativa de criar '{args.role}' negada localmente.")
