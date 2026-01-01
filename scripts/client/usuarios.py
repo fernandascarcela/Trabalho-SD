@@ -1,18 +1,53 @@
 import argparse
 import requests
 import sys
+from utils.validacoes import email_valido, cpf_valido, senha_valida, crm_valido
 
 
 def criar_usuario(args):
 
+    # ---- Permissões ----
     if args.perfil_operador == "recepcionista" and args.role != "paciente":
         print(f"\nERRO: Como {args.perfil_operador}, você só tem permissão para criar 'paciente'.")
-        print(f"Tentativa de criar '{args.role}' negada localmente.")
         return
 
-    payload = { 
-        "perfil_operador": args.perfil_operador, 
-        "email_operador": args.email_operador, 
+    # ---- Validação do operador ----
+    if not email_valido(args.email_operador):
+        print("ERRO: E-mail do operador inválido.")
+        return
+
+    if not senha_valida(args.senha_operador):
+        print("ERRO: Senha do operador inválida (mín. 6 caracteres).")
+        return
+
+    # ---- Validação do novo usuário ----
+    if not email_valido(args.email):
+        print("ERRO: E-mail do novo usuário inválido.")
+        return
+
+    if not senha_valida(args.senha):
+        print("ERRO: Senha do novo usuário inválida (mín. 6 caracteres).")
+        return
+
+    if args.role == "paciente":
+        if not args.cpf:
+            print("ERRO: Paciente precisa de CPF.")
+            return
+        if not cpf_valido(args.cpf):
+            print("ERRO: CPF inválido.")
+            return
+
+    if args.role == "medico":
+        if not args.crm:
+            print("ERRO: Médico precisa de CRM.")
+            return
+        if not crm_valido(args.crm):
+            print("ERRO: CRM inválido. Deve conter apenas números.")
+
+    # ---- Montagem do payload (APÓS validações) ----
+    payload = {
+        "perfil_operador": args.perfil_operador,
+        "email_operador": args.email_operador,
         "senha_operador": args.senha_operador,
         "role": args.role,
         "nome": args.nome,
@@ -20,29 +55,49 @@ def criar_usuario(args):
         "senha": args.senha,
     }
 
-    if args.role == "medico" and args.especialidade:
-        payload["especialidade"] = args.especialidade,
-        payload["crm"] = args.crm,
-    
+    if args.role == "medico":
+        payload["crm"] = args.crm
+        if args.especialidade:
+            payload["especialidade"] = args.especialidade
+
     if args.role == "paciente":
         payload["cpf"] = args.cpf
 
     endpoint = "admin" if args.perfil_operador == "admin" else "recepcionista"
+
     try:
-        resp = requests.post(f"http://localhost:5001/{endpoint}/usuarios/registrar", json=payload)
+        resp = requests.post(
+            f"http://localhost:5001/{endpoint}/usuarios/registrar",
+            json=payload
+        )
         print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
         print(resp.json())
     except Exception as e:
         print(f"Erro de conexão: {e}")
 
 
-
 def editar_usuario(args):
-    if args.perfil_operador == "recepcionista" and args.role != "paciente":
-        print(f"\nERRO: Como {args.perfil_operador}, você só tem permissão para editar dados de 'paciente'.")
-        print(f"Tentativa de editar dados de '{args.role}' negada localmente.")
+
+    if args.perfil_operador == "recepcionista" and args.role not in ["paciente", "medico"]:
+        print(f"\nERRO: Como {args.perfil_operador}, você só pode editar 'paciente' ou 'medico'.")
         return
-    
+
+    if not email_valido(args.email_operador):
+        print("ERRO: E-mail do operador inválido.")
+        return
+
+    if not senha_valida(args.senha_operador):
+        print("ERRO: Senha do operador inválida.")
+        return
+
+    if not email_valido(args.email):
+        print("ERRO: E-mail do usuário a ser editado inválido.")
+        return
+
+    if args.nova_senha and not senha_valida(args.nova_senha):
+        print("ERRO: Nova senha inválida (mín. 6 caracteres).")
+        return
+
     payload = {
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
@@ -59,17 +114,34 @@ def editar_usuario(args):
         payload["especialidade"] = args.nova_especialidade
 
     endpoint = "admin" if args.perfil_operador == "admin" else "recepcionista"
+
     try:
-        resp = requests.post(f"http://localhost:5001/{endpoint}/usuarios/editar", json=payload)
+        resp = requests.post(
+            f"http://localhost:5001/{endpoint}/usuarios/editar",
+            json=payload
+        )
         print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
         print(resp.json())
     except Exception as e:
         print(f"Erro de conexão: {e}")
 
+
 def excluir_usuario(args):
+
     if args.perfil_operador == "recepcionista" and args.role != "paciente":
-        print(f"\nERRO: Como {args.perfil_operador}, você só tem permissão para excluir 'paciente'.")
-        print(f"Tentativa de excluir '{args.role}' negada localmente.")
+        print(f"\nERRO: Como {args.perfil_operador}, você só pode excluir 'paciente'.")
+        return
+
+    if not email_valido(args.email_operador):
+        print("ERRO: E-mail do operador inválido.")
+        return
+
+    if not senha_valida(args.senha_operador):
+        print("ERRO: Senha do operador inválida.")
+        return
+
+    if not email_valido(args.email):
+        print("ERRO: E-mail do usuário inválido.")
         return
 
     payload = {
@@ -81,12 +153,17 @@ def excluir_usuario(args):
     }
 
     endpoint = "admin" if args.perfil_operador == "admin" else "recepcionista"
+
     try:
-        resp = requests.post(f"http://localhost:5001/{endpoint}/usuarios/excluir", json=payload)
+        resp = requests.post(
+            f"http://localhost:5001/{endpoint}/usuarios/excluir",
+            json=payload
+        )
         print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
         print(resp.json())
     except Exception as e:
         print(f"Erro de conexão: {e}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Sistema de Gestão de Usuários")
@@ -94,37 +171,39 @@ def main():
 
     # ---- Registrar ----
     criar = subparsers.add_parser("registrar")
-    criar.add_argument("perfil_operador", choices=["admin", "recepcionista"], help="Seu cargo")
-    criar.add_argument("email_operador", help="Seu e-mail de login")
-    criar.add_argument("senha_operador", help="Sua senha")
-    criar.add_argument("role", choices=["paciente", "medico", "recepcionista", "admin"], help="Cargo do novo usuário")
+    criar.add_argument("perfil_operador", choices=["admin", "recepcionista"])
+    criar.add_argument("email_operador")
+    criar.add_argument("senha_operador")
+    criar.add_argument("role", choices=["paciente", "medico", "recepcionista", "admin"])
     criar.add_argument("nome")
     criar.add_argument("email")
     criar.add_argument("senha")
-    criar.add_argument("--especialidade", choices=["pediatra", "psicologo", "nutricionista", "dermatologista", "fisioterapeuta"], required=False)
-    criar.add_argument("--crm", help="Número do CRM (se médico)", required=False)
-    criar.add_argument("--cpf", help="CPF do paciente (se paciente)", required=False)
+    criar.add_argument("--especialidade", choices=[
+        "pediatra", "psicologo", "nutricionista", "dermatologista", "fisioterapeuta"
+    ])
+    criar.add_argument("--crm")
+    criar.add_argument("--cpf")
     criar.set_defaults(func=criar_usuario)
 
     # ---- Editar ----
-    editar = subparsers.add_parser("editar", help="Edita um usuário existente")
+    editar = subparsers.add_parser("editar")
     editar.add_argument("perfil_operador", choices=["admin", "recepcionista"])
     editar.add_argument("email_operador")
     editar.add_argument("senha_operador")
     editar.add_argument("role", choices=["paciente", "medico", "recepcionista", "admin"])
-    editar.add_argument("email", help="E-mail do usuário a ser editado")
-    editar.add_argument("--novo-nome", help="Novo nome do usuário")
-    editar.add_argument("--nova-senha", help="Nova senha do usuário")
-    editar.add_argument("--nova-especialidade", help="Nova especialidade (se médico)")
+    editar.add_argument("email")
+    editar.add_argument("--novo-nome")
+    editar.add_argument("--nova-senha")
+    editar.add_argument("--nova-especialidade")
     editar.set_defaults(func=editar_usuario)
 
     # ---- Excluir ----
-    excluir = subparsers.add_parser("excluir", help="Exclui um usuário existente")
+    excluir = subparsers.add_parser("excluir")
     excluir.add_argument("perfil_operador", choices=["admin", "recepcionista"])
     excluir.add_argument("email_operador")
     excluir.add_argument("senha_operador")
     excluir.add_argument("role", choices=["paciente", "medico", "recepcionista", "admin"])
-    excluir.add_argument("email", help="E-mail do usuário a ser excluído")
+    excluir.add_argument("email")
     excluir.set_defaults(func=excluir_usuario)
 
     args = parser.parse_args()
