@@ -29,22 +29,7 @@ def criar_usuario(args):
         print("ERRO: Senha do novo usuário inválida (mín. 6 caracteres).")
         return
 
-    if args.role == "paciente":
-        if not args.cpf:
-            print("ERRO: Paciente precisa de CPF.")
-            return
-        if not cpf_valido(args.cpf):
-            print("ERRO: CPF inválido.")
-            return
-
-    if args.role == "medico":
-        if not args.crm:
-            print("ERRO: Médico precisa de CRM.")
-            return
-        if not crm_valido(args.crm):
-            print("ERRO: CRM inválido. Deve conter apenas números.")
-
-    # ---- Montagem do payload (APÓS validações) ----
+    # ---- Montagem base do payload ----
     payload = {
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
@@ -55,13 +40,34 @@ def criar_usuario(args):
         "senha": args.senha,
     }
 
-    if args.role == "medico":
-        payload["crm"] = args.crm
-        if args.especialidade:
-            payload["especialidade"] = args.especialidade
-
+    # ---- Paciente ----
     if args.role == "paciente":
+        if not args.cpf:
+            print("ERRO: Paciente precisa de CPF.")
+            return
+
+        if not cpf_valido(args.cpf):
+            print("ERRO: CPF inválido.")
+            return
+
         payload["cpf"] = args.cpf
+
+    # ---- Médico ----
+    if args.role == "medico":
+        if not args.crm:
+            print("ERRO: Médico precisa de CRM.")
+            return
+
+        if not crm_valido(args.crm):
+            print("ERRO: CRM inválido. Deve conter apenas números.")
+            return
+
+        if not args.especialidade:
+            print("ERRO: Médico precisa de especialidade.")
+            return
+
+        payload["crm"] = args.crm
+        payload["especialidade"] = args.especialidade
 
     endpoint = "admin" if args.perfil_operador == "admin" else "recepcionista"
 
@@ -108,8 +114,10 @@ def editar_usuario(args):
 
     if args.novo_nome:
         payload["nome"] = args.novo_nome
+
     if args.nova_senha:
         payload["senha"] = args.nova_senha
+
     if args.nova_especialidade:
         payload["especialidade"] = args.nova_especialidade
 
@@ -178,9 +186,7 @@ def main():
     criar.add_argument("nome")
     criar.add_argument("email")
     criar.add_argument("senha")
-    criar.add_argument("--especialidade", choices=[
-        "pediatra", "psicologo", "nutricionista", "dermatologista", "fisioterapeuta"
-    ])
+    criar.add_argument("--especialidade")
     criar.add_argument("--crm")
     criar.add_argument("--cpf")
     criar.set_defaults(func=criar_usuario)

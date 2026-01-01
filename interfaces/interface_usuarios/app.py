@@ -32,109 +32,123 @@ def enviar_para_servico(acao, dados):
         return {"erro": f"Erro TCP: {e}"}
 
 
-def json_invalido():
-    return jsonify({"erro": "JSON inválido"}), 400
+def erro(msg, status=400):
+    return jsonify({"erro": msg}), status
 
 
-# ---------- PACIENTE ----------
-@app.post("/paciente/registro")
-def registrar():
+def operador_pode_criar(perfil_operador, role):
+    if perfil_operador == "admin":
+        return True
+    if perfil_operador == "recepcionista" and role == "paciente":
+        return True
+    return False
+
+@app.post("/<perfil_operador>/usuarios/registrar")
+def registrar_usuario(perfil_operador):
+
+    if perfil_operador not in ["admin", "recepcionista"]:
+        return erro("Perfil de operador inválido")
+
     if not request.is_json:
-        return json_invalido()
+        return erro("JSON inválido")
 
     body = request.json
+
+    campos_base = [
+        "email_operador",
+        "senha_operador",
+        "role",
+        "nome",
+        "email",
+        "senha"
+    ]
+
+    if not all(c in body for c in campos_base):
+        return erro("Campos obrigatórios ausentes")
+
+    role = body["role"]
+
+    if not operador_pode_criar(perfil_operador, role):
+        return erro("Permissão negada")
+
+    # ---- Validação por tipo ----
+    if role == "medico":
+        if "crm" not in body or "especialidade" not in body:
+            return erro("CRM e especialidade são obrigatórios para médico")
+
+    if role == "paciente":
+        if "cpf" not in body:
+            return erro("CPF é obrigatório para paciente")
+
+    # ---- Encaminha para serviço TCP ----
+    resposta = enviar_para_servico(
+        acao="registrar_usuario",
+        dados=body
+    )
+
+    status = 201 if "erro" not in resposta else 400
+    return jsonify(resposta), status
+
+
+@app.post("/<perfil_operador>/usuarios/editar")
+def editar_usuario(perfil_operador):
+
+    if perfil_operador not in ["admin", "recepcionista"]:
+        return erro("Perfil inválido")
+
+    if not request.is_json:
+        return erro("JSON inválido")
+
+    body = request.json
+
     obrigatorios = [
-        "nome_paciente",
-        "email_paciente",
-        "senha_paciente",
+        "email_operador",
+        "senha_operador",
+        "role",
+        "email"
     ]
 
     if not all(c in body for c in obrigatorios):
-        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
+        return erro("Campos obrigatórios ausentes")
 
     resposta = enviar_para_servico(
-        "paciente_registrar",
-        body
+        acao="editar_usuario",
+        dados=body
     )
 
-    return jsonify(resposta), 201 if "erro" not in resposta else 400
+    status = 200 if "erro" not in resposta else 400
+    return jsonify(resposta), status
 
 
-@app.delete("/paciente/excluir")
-def excluir():
+@app.post("/<perfil_operador>/usuarios/excluir")
+def excluir_usuario(perfil_operador):
+
+    if perfil_operador not in ["admin", "recepcionista"]:
+        return erro("Perfil inválido")
+
     if not request.is_json:
-        return json_invalido()
+        return erro("JSON inválido")
 
     body = request.json
+
     obrigatorios = [
-        "email_paciente",
-        "senha_paciente",
+        "email_operador",
+        "senha_operador",
+        "role",
+        "email"
     ]
 
     if not all(c in body for c in obrigatorios):
-        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
+        return erro("Campos obrigatórios ausentes")
 
     resposta = enviar_para_servico(
-        "paciente_excluir",
-        body
+        acao="excluir_usuario",
+        dados=body
     )
 
-    return jsonify(resposta), 201 if "erro" not in resposta else 400
+    status = 200 if "erro" not in resposta else 400
+    return jsonify(resposta), status
 
 
-
-# ---------- ADMIN ----------
-@app.post("/admin/medico/criar")
-def admin_criar_medico():
-    if not request.is_json:
-        return json_invalido()
-
-    body = request.json
-    obrigatorios = [
-        "email_admin",
-        "senha_admin",
-        "nome_medico",
-        "email_medico",
-        "senha_medico",
-        "especialidade"
-    ]
-
-    if not all(c in body for c in obrigatorios):
-        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
-
-    resposta = enviar_para_servico(
-        "admin_criar_medico",
-        body
-    )
-
-    return jsonify(resposta), 201 if "erro" not in resposta else 400
-
-
-@app.post("/admin/paciente/criar")
-def admin_criar_paciente():
-    if not request.is_json:
-        return json_invalido()
-
-    body = request.json
-    obrigatorios = [
-        "email_admin",
-        "senha_admin",
-        "nome_paciente",
-        "email_paciente",
-        "senha_paciente"
-    ]
-
-    if not all(c in body for c in obrigatorios):
-        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
-
-    resposta = enviar_para_servico(
-        "admin_criar_paciente",
-        body
-    )
-
-    return jsonify(resposta), 201 if "erro" not in resposta else 400
-
-
-# ---------- MAIN ----------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
