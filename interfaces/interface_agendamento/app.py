@@ -41,6 +41,7 @@ def criar_atendimento(perfil_operador):
             body["email_operador"],
             body["senha_operador"],
             body["id_consulta"],
+            body["email_medico"],
             body["data"],
             body["horario"]
         )
