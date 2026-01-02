@@ -1,7 +1,7 @@
 import argparse
 import requests
 import sys
-from utils.validacoes import verificar_credenciais, data_valida, horario_valido, eh_int
+from utils.validacoes import verificar_credenciais, data_valida, eh_int
 
 
 def listar_consultas(args):
@@ -91,7 +91,7 @@ def atualizar_status_atendimento(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Sistema de Gestao de Atendimentos Medicos")
+    parser = argparse.ArgumentParser(description="Sistema de Gestao de Consultas Medicos")
     subparsers = parser.add_subparsers(dest="comando")
 
 

@@ -2,62 +2,29 @@ import argparse
 import requests
 import sys
 
-
 def validar(args):
-    perfis_permitidos = ["admin", "recepcionista"]
-
+    perfis_permitidos = ["admin", "paciente", "recepcionista"]
+    
     if args.perfil_operador not in perfis_permitidos:
         print(
             f"\nERRO: Como {args.perfil_operador}, "
-            "voce nao tem permissao para validar pagamento ou convenio."
+            "Voce nao tem permissao para cadastrar convenio."
         )
-        print("Tentativa de validacao negada localmente.")
+        print("Tentativa de cadastro negada localmente.")
         return
+
+
 
     payload = {
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
         "senha_operador": args.senha_operador,
-        "tipo_pagamento": args.tipo_pagamento
+        "cpf_titular_convenio": args.cpf_titular_convenio,
+        "numero_carteirinha": args.numero_carteirinha,
+        "data_de_validade": args.data_de_validade,
     }
 
-    # ---------- VALIDAÇÃO POR TIPO DE PAGAMENTO ----------
-    if args.tipo_pagamento == "cartao":
-        obrigatorios = ["bandeira", "tipo_cartao", "ultimos_digitos", "valor"]
-
-        for campo in obrigatorios:
-            if not getattr(args, campo, None):
-                print(f"\nERRO: Campo obrigatório ausente para cartão: {campo}")
-                return
-
-        payload.update({
-            "bandeira": args.bandeira,
-            "tipo_cartao": args.tipo_cartao,       # credito ou debito
-            "ultimos_digitos": args.ultimos_digitos,
-            "valor": args.valor
-        })
-
-        endpoint = "cartao"
-
-    elif args.tipo_pagamento == "convenio":
-        obrigatorios = ["codigo_convenio", "numero_carteirinha", "titular"]
-
-        for campo in obrigatorios:
-            if not getattr(args, campo, None):
-                print(f"\nERRO: Campo obrigatório ausente para convênio: {campo}")
-                return
-
-        payload.update({
-            "codigo_convenio": args.codigo_convenio,
-            "numero_carteirinha": args.numero_carteirinha,
-            "titular": args.titular
-        })
-
-        endpoint = "convenio"
-
-    else:
-        print("\nERRO: Tipo de pagamento inválido. Use 'cartao' ou 'convenio'.")
-        return
+   
 
     # ---------- CHAMADA AO SERVIÇO ----------
     try:

@@ -300,6 +300,7 @@ def main():
     editar.add_argument("senha_operador")
     editar.add_argument("role", nargs="?", choices=["paciente", "medico", "recepcionista", "admin"])
     editar.add_argument("email",nargs="?", default=None)
+    
     editar.add_argument("--novo-nome")
     editar.add_argument("--novo-email")
     editar.add_argument("--nova-senha")

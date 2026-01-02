@@ -21,7 +21,6 @@ def erro(msg, status=400):
 
 
 # ------------------- CRUD de Atendimentos -------------------
-
 @app.post("/<perfil_operador>/atendimentos/criar")
 def criar_atendimento(perfil_operador):
     if perfil_operador not in ["admin", "medico"]:
@@ -31,7 +30,7 @@ def criar_atendimento(perfil_operador):
         return erro("JSON inválido")
 
     body = request.json
-    obrigatorios = ["email_paciente", "senha_paciente", "id_consulta", "data", "horario"]
+    obrigatorios = ["email_operador", "senha_operador", "data", "horario"]
 
     if not all(c in body for c in obrigatorios):
         return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
@@ -39,8 +38,8 @@ def criar_atendimento(perfil_operador):
     try:
         
         resposta = rpc_client.criar_atendimento(
-            body["email_paciente"],
-            body["senha_paciente"],
+            body["email_operador"],
+            body["senha_operador"],
             body["id_consulta"],
             body["data"],
             body["horario"]
@@ -151,7 +150,6 @@ def atualizar_status_atendimento(perfil_operador):
 
 
 # --------------- Consultas marcadas -------------------
-
 @app.post("/<perfil_operador>/consultas/agendadas")
 def consultas_agendadas(perfil_operador):
     if perfil_operador not in ["admin", "medico", "paciente"]:

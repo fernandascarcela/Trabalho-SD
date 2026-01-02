@@ -6,7 +6,7 @@ from utils.validacoes import verificar_credenciais, data_valida, horario_valido,
 
 def criar_atendimento(args):
     # ---- Permissões ----
-    if args.perfil_operador != "medico" and args.perfil_operador != "admin":
+    if args.perfil_operador not in ["medico", "admin"]:
         print(f"\nERRO: Como {args.perfil_operador}, você não tem permissão para criar atendimentos.")
         return
     
@@ -14,7 +14,12 @@ def criar_atendimento(args):
     if not verificar_credenciais(args):
         return
 
-    # ---- Validação de data e horário atendimento ----
+    # ---- Admin precisa informar o médico ----
+    if args.perfil_operador == "admin" and not args.email_medico:
+        print("ERRO: Admin deve informar o email do médico responsável pelo atendimento.")
+        return
+
+    # ---- Validação de data e horário ----
     if not data_valida(args.data):
         print("ERRO: Formato de data inválida.")
         return
@@ -27,8 +32,10 @@ def criar_atendimento(args):
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
         "senha_operador": args.senha_operador,
+        "email_medico": args.email_medico,
         "data": args.data,
         "horario": args.horario,
+        
     }
 
     endpoint = "admin" if args.perfil_operador == "admin" else "medico"
@@ -150,11 +157,12 @@ def main():
     parser = argparse.ArgumentParser(description="Sistema de Gestao de Atendimentos Medicos")
     subparsers = parser.add_subparsers(dest="comando")
 
-    # ---- Registrar ----
+    # ---- Criar Atendimento ----
     criar = subparsers.add_parser("criar")
     criar.add_argument("perfil_operador", choices=["admin", "medico"])
     criar.add_argument("email_operador")
     criar.add_argument("senha_operador")
+    criar.add_argument("--email_medico", required=False)
     criar.add_argument("data")
     criar.add_argument("horario")
     criar.set_defaults(func=criar_atendimento)
