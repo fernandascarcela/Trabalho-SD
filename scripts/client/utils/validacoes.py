@@ -16,3 +16,4 @@ def senha_valida(senha):
 
 def crm_valido(crm):
     return crm.isdigit()
+

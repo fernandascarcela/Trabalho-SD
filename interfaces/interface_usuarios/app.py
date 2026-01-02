@@ -10,6 +10,8 @@ SERVICO_HOST = os.getenv("SERVICO_HOST", "localhost")
 SERVICO_PORT = int(os.getenv("SERVICO_PORT", 6001))
 PROTOCOLO = "usuarios/1.0"
 
+especialidades_validas = ['FISIOTERAPEUTA', 'NUTRICIONISTA', 'PISIQUIATRA', 'DERMATOLOGISTA', 'PEDIATRIA']
+funcoes_validas = ['paciente', 'medico', 'recepcionista', 'admin']
 
 # ---------- Comunicação TCP ----------
 def enviar_para_servico(acao, dados):
@@ -31,10 +33,8 @@ def enviar_para_servico(acao, dados):
     except Exception as e:
         return {"erro": f"Erro TCP: {e}"}
 
-
 def erro(msg, status=400):
     return jsonify({"erro": msg}), status
-
 
 def operador_pode_criar(perfil_operador, role):
     if perfil_operador == "admin":
@@ -45,7 +45,6 @@ def operador_pode_criar(perfil_operador, role):
 
 @app.post("/<perfil_operador>/usuarios/registrar")
 def registrar_usuario(perfil_operador):
-
     if perfil_operador not in ["admin", "recepcionista"]:
         return erro("Perfil de operador inválido")
 
@@ -54,7 +53,7 @@ def registrar_usuario(perfil_operador):
 
     body = request.json
 
-    campos_base = [
+    obrigatorios = [
         "email_operador",
         "senha_operador",
         "role",
@@ -63,10 +62,13 @@ def registrar_usuario(perfil_operador):
         "senha"
     ]
 
-    if not all(c in body for c in campos_base):
+    if not all(c in body for c in obrigatorios):
         return erro("Campos obrigatórios ausentes")
 
     role = body["role"]
+
+    if role not in funcoes_validas:
+        return erro("Role inválida")
 
     if not operador_pode_criar(perfil_operador, role):
         return erro("Permissão negada")
@@ -75,6 +77,9 @@ def registrar_usuario(perfil_operador):
     if role == "medico":
         if "crm" not in body or "especialidade" not in body:
             return erro("CRM e especialidade são obrigatórios para médico")
+        
+        if body["especialidade"].upper() not in especialidades_validas:
+            return erro("Especialidade inválida")
 
     if role == "paciente":
         if "cpf" not in body:
@@ -91,45 +96,46 @@ def registrar_usuario(perfil_operador):
 
 @app.post("/<perfil_operador>/usuarios/editar")
 def editar_usuario(perfil_operador):
-
-    if perfil_operador not in ["admin", "recepcionista"]:
+    if perfil_operador not in funcoes_validas:
         return erro("Perfil de operador inválido")
-
+    
     if not request.is_json:
         return erro("JSON inválido")
 
     body = request.json
 
-    # ---------- CAMPOS BASE ----------
     obrigatorios = [
-        "email_operador",
+        "perfil_operador", 
+        "email_operador", 
         "senha_operador"
     ]
 
     if not all(c in body for c in obrigatorios):
         return erro("Campos obrigatórios ausentes")
 
-    # ---------- IDENTIFICA AUTOEDIÇÃO ----------
-    auto_edicao = "email" not in body
+    auto_edicao = False
 
-    if not auto_edicao:
+    if "email" not in body:
+        auto_edicao = True
+    else:
+        if body["email"] == body["email_operador"]:
+            auto_edicao = True
+
+    # ---------- VALIDAÇÃO DE PERMISSÃO ----------
+    if auto_edicao:
+        if perfil_operador == "recepcionista":
+            return erro("Recepcionista não pode editar a si mesmo")
+    else:
+        if perfil_operador not in ["admin", "recepcionista"]:
+            return erro("Apenas admin ou recepcionista podem editar outros usuários")
+        
         if "role" not in body:
-            return erro("Role é obrigatória ao editar outro usuário")
-
+            return erro("Role do usuário a ser editado é obrigatória")
+            
         if perfil_operador == "recepcionista" and body["role"] not in ["paciente", "medico"]:
             return erro("Recepcionista só pode editar paciente ou médico")
 
-    # ---------- REGRAS ESPECÍFICAS PARA MÉDICO ----------
-    role_final = body.get("role", perfil_operador)
-
-    if role_final == "medico":
-        if "crm" in body and not body["crm"]:
-            return erro("CRM inválido")
-
-        if "especialidade" in body and not body["especialidade"]:
-            return erro("Especialidade inválida")
-
-    # ---------- ENCAMINHA PARA SERVIÇO TCP ----------
+    # ---------- ENCAMINHA PARA O SERVIÇO TCP ----------
     resposta = enviar_para_servico(
         acao="editar_usuario",
         dados=body
@@ -140,7 +146,6 @@ def editar_usuario(perfil_operador):
 
 @app.post("/<perfil_operador>/usuarios/excluir")
 def excluir_usuario(perfil_operador):
-
     if perfil_operador not in ["admin", "recepcionista"]:
         return erro("Perfil inválido")
 
@@ -158,6 +163,9 @@ def excluir_usuario(perfil_operador):
 
     if not all(c in body for c in obrigatorios):
         return erro("Campos obrigatórios ausentes")
+    
+    if body["role"] not in funcoes_validas:
+        return erro("Role inválida")
 
     resposta = enviar_para_servico(
         acao="excluir_usuario",
@@ -167,6 +175,35 @@ def excluir_usuario(perfil_operador):
     status = 200 if "erro" not in resposta else 400
     return jsonify(resposta), status
 
+@app.post("/<perfil_operador>/usuarios/listar")
+def listar_usuarios(perfil_operador):
+    if perfil_operador != "admin":
+        return erro("Apenas admin pode listar usuários")
+
+    if not request.is_json:
+        return erro("JSON inválido")
+
+    body = request.json
+
+    obrigatorios = [
+        "email_operador",
+        "senha_operador",
+        "role"
+    ]
+
+    if not all(c in body for c in obrigatorios):
+        return erro("Campos obrigatórios ausentes")
+    
+    if body["role"] not in funcoes_validas:
+        return erro("Role inválida")
+
+    resposta = enviar_para_servico(
+        acao="listar_usuarios",
+        dados=body
+    )
+
+    status = 200 if "erro" not in resposta else 400
+    return jsonify(resposta), status
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)

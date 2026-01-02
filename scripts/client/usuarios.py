@@ -3,7 +3,6 @@ import requests
 import sys
 from utils.validacoes import email_valido, cpf_valido, senha_valida, crm_valido
 
-
 def criar_usuario(args):
 
     # ---- Permissões ----
@@ -81,19 +80,7 @@ def criar_usuario(args):
     except Exception as e:
         print(f"Erro de conexão: {e}")
 
-
 def editar_usuario(args):
-
-    auto_edicao = False
-
-    # ---------- IDENTIFICA AUTO-EDIÇÃO ----------
-    if not args.email:
-        auto_edicao = True
-        usuario_email = args.email_operador
-    else:
-        usuario_email = args.email
-
-    # ---------- VALIDAÇÕES DO OPERADOR ----------
     if not email_valido(args.email_operador):
         print("ERRO: E-mail do operador inválido.")
         return
@@ -101,18 +88,50 @@ def editar_usuario(args):
     if not senha_valida(args.senha_operador):
         print("ERRO: Senha do operador inválida.")
         return
+    
+    auto_edicao = False
+
+    if not args.email:
+        auto_edicao = True
+    else:
+        if args.email == args.email_operador:
+            auto_edicao = True
+
+        usuario_email = args.email
+
+
 
     # ---------- REGRAS DE PERMISSÃO ----------
-    if not auto_edicao:
+    if auto_edicao:
+        # Quem pode autoeditar
+        if args.perfil_operador in ["recepcionista"]:
+            print("ERRO: Recepcionista não pode se autoeditar.")
+            return
+        
+        if args.role:
+            if args.role not in ["paciente", "medico", "recepcionista", "admin"]:
+                print("ERRO: Role inválida.")
+                return
+        # Paciente, médico e admin podem autoeditar a si mesmos
+    else:
         if args.perfil_operador == "recepcionista" and args.role not in ["paciente", "medico"]:
             print(
-                f"\nERRO: Como {args.perfil_operador}, "
-                "você só pode editar paciente ou médico."
+                f"\nERRO: Como {args.perfil_operador}, você só pode editar paciente ou médico."
+            )
+            return
+
+        if args.perfil_operador in ["paciente", "medico"]:
+            print(
+                f"\nERRO: Você só pode se autoeditar."
             )
             return
 
         if not args.role:
             print("ERRO: Role do usuário a ser editado é obrigatória.")
+            return
+
+        if not args.email:
+            print("ERRO: Email do usuário a ser editado é obrigatória.")
             return
 
         if not email_valido(usuario_email):
@@ -148,10 +167,10 @@ def editar_usuario(args):
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
         "senha_operador": args.senha_operador,
-        "email": usuario_email
     }
 
     if not auto_edicao:
+        payload["email"] = usuario_email
         payload["role"] = args.role
 
     if args.novo_nome:
@@ -169,8 +188,14 @@ def editar_usuario(args):
         if args.crm:
             payload["crm"] = args.crm
 
+    if role_final == "paciente" and args.cpf:
+        if not cpf_valido(args.cpf):
+            print("ERRO: CPF inválido.")
+            return
+        payload["cpf"] = args.cpf
+
     # ---------- ENDPOINT ----------
-    endpoint = "admin" if args.perfil_operador == "admin" else "recepcionista"
+    endpoint = args.perfil_operador 
 
     # ---------- CHAMADA AO SERVIÇO ----------
     try:
@@ -179,13 +204,13 @@ def editar_usuario(args):
             json=payload,
             timeout=5
         )
+        print(payload)
 
         print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
         print(resp.json())
 
     except Exception as e:
         print(f"\nERRO: Falha de conexão: {e}")
-
 
 def excluir_usuario(args):
 
@@ -225,6 +250,32 @@ def excluir_usuario(args):
     except Exception as e:
         print(f"Erro de conexão: {e}")
 
+def listar_usuarios(args):
+    if not email_valido(args.email_operador):
+        print("ERRO: E-mail do operador inválido.")
+        return
+
+    if not senha_valida(args.senha_operador):
+        print("ERRO: Senha do operador inválida.")
+        return
+
+    payload = {
+        "perfil_operador": args.perfil_operador,
+        "email_operador": args.email_operador,
+        "senha_operador": args.senha_operador,
+        "role": args.role,
+    }
+
+    try:
+        resp = requests.post(
+            f"http://localhost:5001/admin/usuarios/listar",
+            json=payload
+        )
+        print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
+        print(resp.json())
+    except Exception as e:
+        print(f"Erro de conexão: {e}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Sistema de Gestão de Usuários")
@@ -246,15 +297,26 @@ def main():
 
     # ---- Editar ----
     editar = subparsers.add_parser("editar")
-    editar.add_argument("perfil_operador", choices=["admin", "recepcionista"])
+    editar.add_argument("perfil_operador", choices=["admin", "recepcionista","paciente","medico"])
     editar.add_argument("email_operador")
     editar.add_argument("senha_operador")
-    editar.add_argument("role", choices=["paciente", "medico", "recepcionista", "admin"])
-    editar.add_argument("email")
+    editar.add_argument("role", nargs="?", choices=["paciente", "medico", "recepcionista", "admin"])
+    editar.add_argument("email",nargs="?", default=None)
     editar.add_argument("--novo-nome")
+    editar.add_argument("--novo-email")
     editar.add_argument("--nova-senha")
     editar.add_argument("--nova-especialidade")
+    editar.add_argument("--crm")
+    editar.add_argument("--cpf")
     editar.set_defaults(func=editar_usuario)
+
+    # ---- Listar ----
+    listar = subparsers.add_parser("listar")
+    listar.add_argument("perfil_operador", choices=["admin"])
+    listar.add_argument("email_operador")
+    listar.add_argument("senha_operador")
+    listar.add_argument("role", choices=["paciente", "medico", "recepcionista", "admin"])
+    listar.set_defaults(func=listar_usuarios)
 
     # ---- Excluir ----
     excluir = subparsers.add_parser("excluir")

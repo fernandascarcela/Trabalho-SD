@@ -26,6 +26,7 @@ services:
         - messaging-network
 
   interface_usuarios:
+    container_name: interface_usuarios
     build: ./interfaces/interface_usuarios
     ports:
       - "5001:5001"
@@ -66,6 +67,8 @@ services:
       DB_USER: admin
       DB_PASSWORD: admin123
       DB_PORT: 5432
+    ports:
+      - "6001:6001"
     depends_on:
       - postgres
     volumes:
