@@ -84,10 +84,16 @@ def criar_usuario(args):
 
 def editar_usuario(args):
 
-    if args.perfil_operador == "recepcionista" and args.role not in ["paciente", "medico"]:
-        print(f"\nERRO: Como {args.perfil_operador}, você só pode editar 'paciente' ou 'medico'.")
-        return
+    auto_edicao = False
 
+    # ---------- IDENTIFICA AUTO-EDIÇÃO ----------
+    if not args.email:
+        auto_edicao = True
+        usuario_email = args.email_operador
+    else:
+        usuario_email = args.email
+
+    # ---------- VALIDAÇÕES DO OPERADOR ----------
     if not email_valido(args.email_operador):
         print("ERRO: E-mail do operador inválido.")
         return
@@ -96,48 +102,95 @@ def editar_usuario(args):
         print("ERRO: Senha do operador inválida.")
         return
 
-    if not email_valido(args.email):
-        print("ERRO: E-mail do usuário a ser editado inválido.")
-        return
+    # ---------- REGRAS DE PERMISSÃO ----------
+    if not auto_edicao:
+        if args.perfil_operador == "recepcionista" and args.role not in ["paciente", "medico"]:
+            print(
+                f"\nERRO: Como {args.perfil_operador}, "
+                "você só pode editar paciente ou médico."
+            )
+            return
 
-    if args.nova_senha and not senha_valida(args.nova_senha):
-        print("ERRO: Nova senha inválida (mín. 6 caracteres).")
-        return
+        if not args.role:
+            print("ERRO: Role do usuário a ser editado é obrigatória.")
+            return
 
+        if not email_valido(usuario_email):
+            print("ERRO: E-mail do usuário a ser editado inválido.")
+            return
+
+    # ---------- NOVO E-MAIL ----------
+    if args.novo_email:
+        if not email_valido(args.novo_email):
+            print("ERRO: Novo e-mail inválido.")
+            return
+
+    # ---------- NOVA SENHA ----------
+    if args.nova_senha:
+        if not senha_valida(args.nova_senha):
+            print("ERRO: Nova senha inválida (mín. 6 caracteres).")
+            return
+
+    # ---------- REGRAS ESPECÍFICAS PARA MÉDICO ----------
+    role_final = args.role if args.role else args.perfil_operador
+
+    if role_final == "medico":
+        if args.nova_especialidade and not args.nova_especialidade.strip():
+            print("ERRO: Especialidade inválida.")
+            return
+
+        if args.crm and not crm_valido(args.crm):
+            print("ERRO: CRM inválido.")
+            return
+
+    # ---------- PAYLOAD ----------
     payload = {
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
         "senha_operador": args.senha_operador,
-        "role": args.role,
-        "email": args.email,
+        "email": usuario_email
     }
+
+    if not auto_edicao:
+        payload["role"] = args.role
 
     if args.novo_nome:
         payload["nome"] = args.novo_nome
 
+    if args.novo_email:
+        payload["novo_email"] = args.novo_email
+
     if args.nova_senha:
         payload["senha"] = args.nova_senha
 
-    if args.nova_especialidade:
-        payload["especialidade"] = args.nova_especialidade
+    if role_final == "medico":
+        if args.nova_especialidade:
+            payload["especialidade"] = args.nova_especialidade
+        if args.crm:
+            payload["crm"] = args.crm
 
+    # ---------- ENDPOINT ----------
     endpoint = "admin" if args.perfil_operador == "admin" else "recepcionista"
 
+    # ---------- CHAMADA AO SERVIÇO ----------
     try:
         resp = requests.post(
             f"http://localhost:5001/{endpoint}/usuarios/editar",
-            json=payload
+            json=payload,
+            timeout=5
         )
+
         print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
         print(resp.json())
+
     except Exception as e:
-        print(f"Erro de conexão: {e}")
+        print(f"\nERRO: Falha de conexão: {e}")
 
 
 def excluir_usuario(args):
 
-    if args.perfil_operador == "recepcionista" and args.role != "paciente":
-        print(f"\nERRO: Como {args.perfil_operador}, você só pode excluir 'paciente'.")
+    if args.perfil_operador == "recepcionista" and args.role not in ["paciente", "medico"]:
+        print(f"\nERRO: Como {args.perfil_operador}, você só pode excluir 'paciente' ou 'medico'.")
         return
 
     if not email_valido(args.email_operador):
