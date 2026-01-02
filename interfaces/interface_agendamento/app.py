@@ -16,25 +16,28 @@ rpc_client = xmlrpc.client.ServerProxy(
     allow_none=True
 )
 
-def json_invalido():
-    return jsonify({"erro": "JSON inválido"}), 400
+def erro(msg, status=400):
+    return jsonify({"erro": msg}), status
 
 
-# ---------- AGENDAMENTO ----------
-@app.post("/agendamento/criar")
-def criar_agendamento():
+
+@app.post("/<perfil_operador>/atendimentos/criar")
+def criar_atendimento(perfil_operador):
+    if perfil_operador not in ["admin", "medico"]:
+        return erro("Perfil sem permissão")
+    
     if not request.is_json:
-        return json_invalido()
+        return erro("JSON inválido")
 
     body = request.json
-    obrigatorios = ["email_paciente", "senha_paciente", "id_consulta"]
+    obrigatorios = ["email_paciente", "senha_paciente", "id_consulta", "data", "horario"]
 
     if not all(c in body for c in obrigatorios):
         return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
 
     try:
         
-        resposta = rpc_client.criar_agendamento(
+        resposta = rpc_client.criar_atendimento(
             body["email_paciente"],
             body["senha_paciente"],
             body["id_consulta"],
@@ -43,31 +46,6 @@ def criar_agendamento():
         )
         return jsonify(resposta), 201
 
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
-
-@app.get("/agendamento/listar")
-def listar_agendamentos():
-    try:
-        resposta = rpc_client.listar_agendamentos()
-        return jsonify(resposta), 200
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
-
-@app.post("/agendamento/cancelar")
-def cancelar_agendamento():
-    if not request.is_json:
-        return json_invalido()
-
-    body = request.json
-    if "agendamento_id" not in body:
-        return jsonify({"erro": "agendamento_id obrigatório"}), 400
-
-    try:
-        resposta = rpc_client.cancelar_agendamento(body["agendamento_id"])
-        return jsonify(resposta), 200
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 

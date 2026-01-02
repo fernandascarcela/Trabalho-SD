@@ -99,8 +99,6 @@ def editar_usuario(args):
 
         usuario_email = args.email
 
-
-
     # ---------- REGRAS DE PERMISSÃO ----------
     if auto_edicao:
         # Quem pode autoeditar
