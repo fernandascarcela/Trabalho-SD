@@ -34,6 +34,8 @@ services:
       - SERVICO_PORT=6001
     depends_on:
       - servico_usuarios
+    networks:
+        - persistence-network
 
   interface_agendamento:
     build: ./interfaces/interface_agendamento
@@ -56,9 +58,21 @@ services:
         - messaging-network
 
   servico_usuarios:
-    build: ./servicos/usuarios
-    ports:
-      - "6001:6001"
+    build: ./servicos/servico_usuarios
+    container_name: servico_usuarios
+    environment:
+      DB_HOST: postgres
+      DB_NAME: clinic_management_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_PORT: 5432
+    depends_on:
+      - postgres
+    volumes:
+      - ./servicos/servico_usuarios:/app
+    networks:
+      - persistence-network
+
 
   servico_agendamento:
     build: ./servicos/agendamento
