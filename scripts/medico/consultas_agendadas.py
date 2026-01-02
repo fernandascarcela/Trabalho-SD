@@ -1,0 +1,73 @@
+import argparse
+import requests
+import sys
+from utils.validacoes import verificar_credenciais, data_valida, horario_valido, eh_int
+
+
+
+def atualizar_status_atendimento(args):
+    if args.perfil_operador != "medico" and args.perfil_operador != "admin":
+        print(f"\nERRO: Como {args.perfil_operador}, você nao tem permissao para atualizar atendimentos.")
+        return
+    
+    # ---- Validação de credenciais ----
+    if not verificar_credenciais(args):
+        return
+    
+    # ---- Validação de ID do atendimento ----
+    if not eh_int(args.id_atendimento):
+        print("ERRO: ID do atendimento inválido.")
+        return
+    
+    # ---- Validação de status ----
+    if args.status not in ["confirmado", "concluido", "cancelado"]:
+        print("ERRO: Status inválido.")
+        return
+    
+    # ---- Preparar payload ----
+    payload = {
+        "perfil_operador": args.perfil_operador,
+        "email_operador": args.email_operador,
+        "senha_operador": args.senha_operador,
+        "id_atendimento": args.id_atendimento,  
+        "status": args.status,
+    }
+
+    endpoint = "admin" if args.perfil_operador == "admin" else "medico"
+    try:
+        resp = requests.post(
+            f"http://localhost:5001/{endpoint}/atendimentos/status",
+            json=payload
+        )
+        print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
+        print(resp.json())
+    except Exception as e:
+        print(f"Erro de conexão: {e}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Sistema de Gestao de Atendimentos Medicos")
+    subparsers = parser.add_subparsers(dest="comando")
+
+        # ---- Atualizar Status Atendimento ----
+    atualizar = subparsers.add_parser("atualizar")
+    atualizar.add_argument("perfil_operador", choices=["admin", "medico"])
+    atualizar.add_argument("email_operador")
+    atualizar.add_argument("senha_operador")
+    atualizar.add_argument("id_atendimento")
+    atualizar.add_argument("status", choices=["confirmado", "concluido", "cancelado"])
+    atualizar.set_defaults(func=atualizar_status_atendimento)
+
+    args = parser.parse_args()
+
+    if not hasattr(args, "func"):
+        parser.print_help()
+        sys.exit(1)
+
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
+
+

@@ -69,7 +69,7 @@ def listar_atendimentos():
     except Exception as e:
         return erro(str(e), 500)
 
-
+@app.post("/<perfil_operador>/atendimentos/excluir")
 def excluir_atendimento(perfil_operador):
     if perfil_operador not in ["admin", "medico"]:
         return erro("Perfil sem permissão")
@@ -95,6 +95,7 @@ def excluir_atendimento(perfil_operador):
         return jsonify({"erro": str(e)}), 500
 
 
+@app.post("/<perfil_operador>/atendimentos/editar")
 def editar_atendimento(perfil_operador):
     if perfil_operador not in ["admin", "medico"]:
         return erro("Perfil sem permissão")
@@ -121,6 +122,32 @@ def editar_atendimento(perfil_operador):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
-# ---------- MAIN ----------
+@app.post("/<perfil_operador>/atendimentos/status")
+def atualizar_status_atendimento(perfil_operador):
+    if perfil_operador not in ["admin", "medico"]:
+        return erro("Perfil sem permissão")
+    
+    if not request.is_json:
+        return erro("JSON inválido")
+
+    body = request.json
+    obrigatorios = ["email_operador", "senha_operador", "id_atendimento", "status"]
+
+    if not all(c in body for c in obrigatorios):
+        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
+
+    try:
+        resposta = rpc_client.atualizar_status_atendimento(
+            body["email_operador"],
+            body["senha_operador"],
+            body["id_atendimento"],
+            body["status"]
+        )
+        return jsonify(resposta), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)

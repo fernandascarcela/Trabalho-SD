@@ -5,7 +5,6 @@ from utils.validacoes import verificar_credenciais, data_valida, horario_valido,
 
 
 def criar_atendimento(args):
-
     # ---- Permissões ----
     if args.perfil_operador != "medico" and args.perfil_operador != "admin":
         print(f"\nERRO: Como {args.perfil_operador}, você não tem permissão para criar atendimentos.")
@@ -146,8 +145,6 @@ def editar_atendimento(args):
         print(resp.json())
     except Exception as e:
         print(f"Erro de conexão: {e}")
- 
-
 
 def main():
     parser = argparse.ArgumentParser(description="Sistema de Gestao de Atendimentos Medicos")
@@ -161,7 +158,6 @@ def main():
     criar.add_argument("data")
     criar.add_argument("horario")
     criar.set_defaults(func=criar_atendimento)
-
 
     # ---- Listar ----
     listar = subparsers.add_parser("listar")
@@ -178,7 +174,6 @@ def main():
     editar.add_argument("data", nargs="?", default=None)
     editar.add_argument("horario", nargs="?", default=None)
     editar.set_defaults(func=editar_atendimento)
-
 
     # ---- Excluir ----
     excluir = subparsers.add_parser("excluir")
