@@ -2,6 +2,8 @@ import argparse
 import requests
 import sys
 
+
+
 def validar(args):
     perfis_permitidos = ["admin", "paciente", "recepcionista"]
     
@@ -12,8 +14,6 @@ def validar(args):
         )
         print("Tentativa de cadastro negada localmente.")
         return
-
-
 
     payload = {
         "perfil_operador": args.perfil_operador,
@@ -43,15 +43,12 @@ def validar(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Sistema de Gestão de Validação de Pagamento e Convênio"
+        description="Sistema de Gestão de Convênio"
     )
     subparsers = parser.add_subparsers(dest="comando")
 
     # ---------- VALIDAR ----------
-    validar_parser = subparsers.add_parser(
-        "validar",
-        help="Validar pagamento por cartão ou convênio"
-    )
+    validar_parser = subparsers.add_parser("validar", help="Validar pagamento por cartão ou convênio")
 
     # Dados do operador
     validar_parser.add_argument(
