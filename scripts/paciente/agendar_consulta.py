@@ -54,13 +54,6 @@ def agendar_consulta(args):
             "data_validade": args.data_validade
         })
 
-    if args.forma_pagamento == "convenio":
-        payload.update({
-            "cpf_titular_convenio": args.cpf_titular_convenio,
-            "data_validade_convenio": args.data_validade_convenio,
-            "numero_convenio": args.numero_convenio
-        })
-
     try:
         resp = requests.post(
             "http://localhost:5001/agendamentos/agendar",
@@ -73,6 +66,46 @@ def agendar_consulta(args):
     except Exception as e:
         print(f"Erro de conexão: {e}")
 
+def cancelar_consulta(args):
+    # ---- Credenciais ----
+    if not verificar_credenciais(args):
+        return
+    
+    if not eh_int(args.id_consulta):
+        print("ERRO: id_consulta deve ser um número inteiro.")
+        return
+
+    # ---- Payload ----
+    payload = {
+        "perfil_operador": args.perfil_operador,
+        "email_operador": args.email_operador,
+        "senha_operador": args.senha_operador,
+        "id_consulta": args.id_consulta,
+
+        #verificar no serviço se o ID sendo passado existe, e se corresponde ao paciente ou medico associado
+    }
+
+    try:
+        resp = requests.post(
+            "http://localhost:5001/agendamentos/cancelar",
+            json=payload,
+            timeout=5
+        )
+        print("\n>>> Resposta do servidor:")
+        print(resp.json())
+
+    except Exception as e:
+        print(f"Erro de conexão: {e}")
+
+
+def reagendar_consulta(args):
+    # ---- Credenciais ----
+    if not verificar_credenciais(args):
+        return
+    
+    if not eh_int(args.id_consulta):
+        print("ERRO: id_consulta deve ser um número inteiro.")
+        return
 
 
 def main():
@@ -85,14 +118,15 @@ def main():
     agendar.add_argument("senha_operador")
     agendar.add_argument("id_consulta", type=int)
     agendar.add_argument("forma_pagamento", choices=["cartao", "convenio"])
-
-    # opcionais (validados depois)
     agendar.add_argument("--email_paciente", default=None)
     agendar.add_argument("--numero_cartao", default=None)
     agendar.add_argument("--data_validade", default=None)
-    agendar.add_argument("--cpf_titular_convenio")
-    agendar.add_argument("--data_validade_convenio", default=None)
-    agendar.add_argument("--numero_convenio", default=None)
+
+    cancelar = subparsers.add_parser("cancelar")
+    cancelar.add_argument("perfil_operador", choices=["admin", "recepcionista, paciente, medico"])
+    cancelar.add_argument("email_operador")
+    cancelar.add_argument("senha_operador")
+    cancelar.add_argument("id_consulta", type=int)
 
     agendar.set_defaults(func=agendar_consulta)
 

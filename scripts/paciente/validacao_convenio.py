@@ -2,8 +2,6 @@ import argparse
 import requests
 import sys
 
-
-
 def validar(args):
     perfis_permitidos = ["admin", "paciente", "recepcionista"]
     

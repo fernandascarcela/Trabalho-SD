@@ -15,13 +15,13 @@ def json_invalido():
 
 
 # ---------- CONVÊNIO ----------
-@app.post("/validacao/cadastrar")
+@app.post("/convenio/validacao")
 def cadastrar_convenio():
     if not request.is_json:
         return json_invalido()
 
     body = request.json
-    obrigatorios = ["nome", "codigo"]
+    obrigatorios = ["perfil_operador", "email_operador", "senha_operador", "cpf_titular_convenio", "numero_carteirinha", "data_validade"]
 
     if not all(c in body for c in obrigatorios):
         return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
@@ -29,8 +29,12 @@ def cadastrar_convenio():
     try:
         resposta = stub.CadastrarConvenio(
             convenio_pb2.ConvenioRequest(
-                nome=body["nome"],
-                codigo=body["codigo"]
+                perfil_operador=body["perfil_operador"],
+                email_operador=body["email_operador"],
+                senha_operador=body["senha_operador"],
+                cpf_titular_convenio=body["cpf_titular_convenio"],
+                numero_carteirinha=body["numero_carteirinha"],
+                data_validade=body["data_validade"]
             )
         )
         return jsonify({
@@ -40,29 +44,6 @@ def cadastrar_convenio():
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
-
-
-@app.post("/convenio/validar")
-def validar_convenio():
-    if not request.is_json:
-        return json_invalido()
-
-    body = request.json
-    if "codigo" not in body:
-        return jsonify({"erro": "Código obrigatório"}), 400
-
-    try:
-        resposta = stub.ValidarConvenio(
-            convenio_pb2.ValidacaoRequest(codigo=body["codigo"])
-        )
-        return jsonify({
-            "valido": resposta.valido,
-            "mensagem": resposta.mensagem
-        }), 200
-
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5003)
