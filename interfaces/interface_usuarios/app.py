@@ -94,6 +94,43 @@ def registrar_usuario(perfil_operador):
     status = 201 if "erro" not in resposta else 400
     return jsonify(resposta), status
 
+
+@app.post("/login")
+def login_usuario():
+    if not request.is_json:
+        return erro("JSON inválido")
+
+    body = request.json
+
+    obrigatorios = [
+        "email",
+        "senha",
+        "perfil"
+    ]
+
+    if not all(c in body for c in obrigatorios):
+        return erro("Campos obrigatórios ausentes")
+
+    perfil = body["perfil"]
+
+    if perfil not in funcoes_validas:
+        return erro("Perfil inválido")
+
+    # ---- Chama o serviço de usuários via socket ----
+    resposta = enviar_para_servico(
+        acao="login_usuario",
+        dados={
+            "email": body["email"],
+            "senha": body["senha"],
+            "perfil": perfil
+        }
+    )
+
+    if "erro" in resposta:
+        return jsonify(resposta), 401
+
+    return jsonify(resposta), 200
+
 @app.post("/<perfil_operador>/usuarios/editar")
 def editar_usuario(perfil_operador):
     if perfil_operador not in funcoes_validas:
