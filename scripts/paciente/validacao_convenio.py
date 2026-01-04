@@ -24,18 +24,15 @@ def validar(args):
         "data_de_validade": args.data_de_validade,
     }
 
-   
-
-    # ---------- CHAMADA AO SERVIÇO ----------
     try:
         resp = requests.post(
-            f"http://localhost:5001/validar/{endpoint}",
-            json=payload,
-            timeout=5
+            f"http://localhost:5001/convenio/validacao",
+            json=payload
         )
-
-        print(f"\n>>> Resposta do Servidor:")
+        print(f"\n>>> Resposta do Servidor: ")
         print(resp.json())
+    except Exception as e:
+        print(f"Erro de conexão: {e}")
 
     except Exception as e:
         print(f"\nERRO: Falha de comunicação com o serviço de validação: {e}")
@@ -48,67 +45,17 @@ def main():
     subparsers = parser.add_subparsers(dest="comando")
 
     # ---------- VALIDAR ----------
-    validar_parser = subparsers.add_parser("validar", help="Validar pagamento por cartão ou convênio")
+    validar_parser = subparsers.add_parser("validar", help="Validar convenio")
 
     # Dados do operador
-    validar_parser.add_argument(
-        "perfil_operador",
-        choices=["admin", "recepcionista", "paciente"],
-        help="Perfil do operador"
-    )
-    validar_parser.add_argument(
-        "email_operador",
-        help="E-mail do operador"
-    )
-    validar_parser.add_argument(
-        "senha_operador",
-        help="Senha do operador"
-    )
-
-    # Tipo de pagamento
-    validar_parser.add_argument(
-        "tipo_pagamento",
-        choices=["cartao", "convenio"],
-        help="Tipo de pagamento"
-    )
-
-    # ---------- CAMPOS PARA CARTÃO ----------
-    validar_parser.add_argument(
-        "--bandeira",
-        help="Bandeira do cartão (ex: Visa, Master)"
-    )
-    validar_parser.add_argument(
-        "--tipo_cartao",
-        choices=["credito", "debito"],
-        help="Tipo do cartão"
-    )
-    validar_parser.add_argument(
-        "--ultimos_digitos",
-        help="Últimos 4 dígitos do cartão"
-    )
-    validar_parser.add_argument(
-        "--valor",
-        type=float,
-        help="Valor da consulta"
-    )
-
-    # ---------- CAMPOS PARA CONVÊNIO ----------
-    validar_parser.add_argument(
-        "--codigo_convenio",
-        help="Código do convênio"
-    )
-    validar_parser.add_argument(
-        "--numero_carteirinha",
-        help="Número da carteirinha"
-    )
-    validar_parser.add_argument(
-        "--titular",
-        help="Nome do titular do convênio"
-    )
-
+    validar_parser.add_argument("perfil_operador", choices=["admin", "recepcionista", "paciente"], help="Perfil do operador")
+    validar_parser.add_argument("email_operador", help="E-mail do operador")
+    validar_parser.add_argument("senha_operador", help="Senha do operador")
+    validar_parser.add_argument( "cpf_titular_convenio", help="CPF do titular do convênio")
+    validar_parser.add_argument( "numero_carteirinha",  help="Número da carteirinha")
+    validar_parser.add_argument("data_de_validade", help="Data de validade do convênio")
     validar_parser.set_defaults(func=validar)
 
-    # ---------- EXECUÇÃO ----------
     args = parser.parse_args()
 
     if hasattr(args, "func"):
