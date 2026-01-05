@@ -122,23 +122,51 @@ def editar_atendimento(perfil_operador):
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
-
+    
 @app.post("/<perfil_operador>/atendimentos/status")
 def atualizar_status_atendimento(perfil_operador):
-    if perfil_operador not in ["admin", "medico"]:
-        return erro("Perfil sem permissão")
-    
     if not request.is_json:
-        return erro("JSON inválido")
+        return jsonify({"erro": "JSON inválido"}), 400
 
     body = request.json
-    obrigatorios = ["email_operador", "senha_operador", "id_atendimento", "status"]
+    obrigatorios = ["perfil_operador", "email_operador", "senha_operador", "id_atendimento", "status"]
 
     if not all(c in body for c in obrigatorios):
         return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
 
+    status = body["status"]
+    perfil = body["perfil_operador"]
+
+    # ---- Validação de permissão por perfil ----
+    if perfil == "recepcionista":
+        if status != "cancelado":
+            return jsonify({
+                "erro": "Recepcionista só pode alterar o status para 'cancelado'."
+            }), 403
+
+    elif perfil == "medico":
+        if status not in ["concluido", "cancelado"]:
+            return jsonify({
+                "erro": "Médico só pode alterar o status para 'concluido' ou 'cancelado'."
+            }), 403
+
+    elif perfil == "paciente":
+        return jsonify({
+            "erro": "Paciente não tem permissão para alterar o status da consulta."
+        }), 403
+
+    elif perfil == "admin":
+        if status not in ["confirmado", "concluido", "cancelado"]:
+            return jsonify({
+                "erro": "Status inválido."
+            }), 400
+
+    else:
+        return jsonify({"erro": "Perfil inválido."}), 400
+    
     try:
         resposta = rpc_client.atualizar_status_atendimento(
+            body["perfil_operador"],
             body["email_operador"],
             body["senha_operador"],
             body["id_atendimento"],

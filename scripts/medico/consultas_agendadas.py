@@ -49,36 +49,47 @@ def listar_consultas(args):
     except Exception as e:
         print(f"Erro de conexão: {e}")
     
-
 def atualizar_status_atendimento(args):
-    if args.perfil_operador != "medico" and args.perfil_operador != "admin":
-        print(f"\nERRO: Como {args.perfil_operador}, você nao tem permissao para atualizar atendimentos.")
-        return
-    
     # ---- Validação de credenciais ----
     if not verificar_credenciais(args):
         return
-    
+
     # ---- Validação de ID do atendimento ----
     if not eh_int(args.id_atendimento):
         print("ERRO: ID do atendimento inválido.")
         return
-    
-    # ---- Validação de status ----
-    if args.status not in ["confirmado", "concluido", "cancelado"]:
-        print("ERRO: Status inválido.")
+
+    # ---- Validação de status por perfil ----
+    if args.perfil_operador == "recepcionista":
+        if args.status != "cancelado":
+            print("ERRO: Recepcionista só pode cancelar consultas.")
+            return
+
+    elif args.perfil_operador == "medico":
+        if args.status not in ["concluido", "cancelado"]:
+            print("ERRO: Médico só pode concluir ou cancelar consultas.")
+            return
+
+    elif args.perfil_operador == "paciente":
+        print("ERRO: Paciente não tem permissão para alterar o status da consulta.")
         return
-    
+
+    elif args.perfil_operador == "admin":
+        if args.status not in ["confirmado", "concluido", "cancelado"]:
+            print("ERRO: Status inválido.")
+            return
+
     # ---- Preparar payload ----
     payload = {
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
         "senha_operador": args.senha_operador,
-        "id_atendimento": args.id_atendimento,  
+        "id_atendimento": args.id_atendimento,
         "status": args.status,
     }
 
     endpoint = "admin" if args.perfil_operador == "admin" else "medico"
+
     try:
         resp = requests.post(
             f"http://localhost:5001/{endpoint}/atendimentos/status",
@@ -88,7 +99,6 @@ def atualizar_status_atendimento(args):
         print(resp.json())
     except Exception as e:
         print(f"Erro de conexão: {e}")
-
 
 def main():
     parser = argparse.ArgumentParser(description="Sistema de Gestao de Consultas Medicos")
@@ -107,7 +117,7 @@ def main():
 
         # ---- Atualizar Status Atendimento ----
     atualizar = subparsers.add_parser("atualizar")
-    atualizar.add_argument("perfil_operador", choices=["admin", "medico"])
+    atualizar.add_argument("perfil_operador", choices=["admin", "medico", "paciente", "recepcionista"])
     atualizar.add_argument("email_operador")
     atualizar.add_argument("senha_operador")
     atualizar.add_argument("id_atendimento")

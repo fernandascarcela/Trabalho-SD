@@ -98,16 +98,6 @@ def cancelar_consulta(args):
         print(f"Erro de conexão: {e}")
 
 
-def reagendar_consulta(args):
-    # ---- Credenciais ----
-    if not verificar_credenciais(args):
-        return
-    
-    if not eh_int(args.id_consulta):
-        print("ERRO: id_consulta deve ser um número inteiro.")
-        return
-
-
 def main():
     parser = argparse.ArgumentParser(description="Sistema de Gestao de Agendamento")
     subparsers = parser.add_subparsers(dest="comando")
