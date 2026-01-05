@@ -239,11 +239,6 @@ def insert_appointment(patient_id, schedule_id, status="AGENDADO", insurance_id=
 
 
 def list_appointments_by_doctor(doctor_id, date=None, status_db=None):
-    """
-    Retorna consultas (appointment) ligadas aos schedules do médico.
-    date: 'YYYY-MM-DD' opcional
-    status_db: enum do banco (ex: 'CONFIRMADO') opcional
-    """
     query = """
         SELECT
             a.appointment_id,
@@ -280,9 +275,6 @@ def list_appointments_by_doctor(doctor_id, date=None, status_db=None):
             return cur.fetchall()
         
 def get_insurance_by_patient_id(patient_id: int):
-    """
-    Retorna o convênio válido do paciente + lista de especialidades cobertas (1 única consulta).
-    """
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
@@ -315,9 +307,6 @@ def get_insurance_by_patient_id(patient_id: int):
 
 
 def get_appointment_with_schedule(appointment_id: int):
-    """
-    Traz appointment + schedule.doctor_id, schedule_id e status atual.
-    """
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(

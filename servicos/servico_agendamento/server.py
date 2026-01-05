@@ -36,14 +36,13 @@ def ok(**k):
 
 
 def fail(msg, code=400):
-    # XML-RPC não trabalha com status HTTP; devolvemos code no payload
+    # code no payload
     return {"ok": False, "erro": msg, "code": code}
 
 
 # ------------------ RPC METHODS ------------------
 
 def criar_atendimento(email_operador, senha_operador, email_medico, data, horario):
-    # 1) autenticar operador
     operador = get_user(email_operador, senha_operador)
     if not operador:
         return fail("Credenciais inválidas", 401)
@@ -56,9 +55,8 @@ def criar_atendimento(email_operador, senha_operador, email_medico, data, horari
     except ValueError as e:
         return fail(str(e), 400)
 
-    # 2) descobrir doctor_id e specialty
     if operador["user_type"] == "MEDICO":
-        # médico cria para si mesmo
+
         doc = doctor_create_schedule(operador)
         if not doc:
             return fail(
@@ -66,7 +64,6 @@ def criar_atendimento(email_operador, senha_operador, email_medico, data, horari
                 404,
             )
     else:
-        # admin cria para outro médico via email_medico
         if not email_medico:
             return fail("ADMIN precisa informar email_medico", 400)
 
@@ -77,14 +74,12 @@ def criar_atendimento(email_operador, senha_operador, email_medico, data, horari
     doctor_id = doc["doctor_id"]
     specialty = doc["specialty"]
 
-    # 3) impedir duplicar horário (mesmo médico, mesma data e hora)
     if check_conflit_schedule(doctor_id, data, horario):
         return fail(
             "Já existe um atendimento cadastrado para esse médico nessa data e horário",
             409,
         )
 
-    # 4) criar schedule
     novo = insert_schedule(doctor_id, data, horario, specialty)
     return to_plain(
         ok(
@@ -99,7 +94,6 @@ def listar_atendimentos(medico=None, especialidade=None):
     doc = None
     doctor_id = None
 
-    # Se algum filtro de médico foi informado, tenta resolver doctor_id
     if medico or especialidade:
         doc = get_doctor_by_name(medico, especialidade)
         if not doc:
@@ -137,14 +131,12 @@ def excluir_atendimento(email_operador, senha_operador, id_atendimento):
     if not schedule:
         return fail("Atendimento não encontrado.", 404)
 
-    # Se MEDICO, só pode excluir horários dele
     if operador["user_type"] == "MEDICO":
         doctor = get_doctor_by_user_id(operador["user_id"])
 
         if doctor["doctor_id"] != schedule["doctor_id"]:
             return fail("O médico não tem permissão para excluir este horário.", 403)
 
-    # Só pode excluir se ainda estiver disponível
     if not schedule["is_available"]:
         return fail(
             "O atendimento já foi agendado. Cancele o agendamento para poder excluí-lo.",
@@ -156,7 +148,6 @@ def excluir_atendimento(email_operador, senha_operador, id_atendimento):
     if not deleted:
         return fail("Horário não encontrado", 404)
 
-    # deleted deve retornar algo como {"schedule_id": ...}
     deleted_id = deleted.get("schedule_id") if isinstance(deleted, dict) else deleted
 
     return ok(
@@ -165,7 +156,6 @@ def excluir_atendimento(email_operador, senha_operador, id_atendimento):
     )
 
 def editar_atendimento(email_operador, senha_operador, id_atendimento, data, horario):
-    # 1) autenticar operador
     operador = get_user(email_operador, senha_operador)
     if not operador:
         return fail("Credenciais inválidas", 401)
@@ -182,7 +172,6 @@ def editar_atendimento(email_operador, senha_operador, id_atendimento, data, hor
     if not schedule:
         return fail("Atendimento não encontrado.", 404)
 
-    # Se MEDICO, só pode editar horários dele
     if operador["user_type"] == "MEDICO":
         doctor = get_doctor_by_user_id(operador["user_id"])
         if not doctor:
@@ -191,7 +180,6 @@ def editar_atendimento(email_operador, senha_operador, id_atendimento, data, hor
         if doctor["doctor_id"] != schedule["doctor_id"]:
             return fail("O médico não tem permissão para editar este horário.", 403)
 
-    # Só pode editar se ainda estiver disponível
     if not schedule["is_available"]:
         return fail(
             "O atendimento já foi agendado. Cancele o agendamento para poder editá-lo.",
@@ -217,7 +205,7 @@ def editar_atendimento(email_operador, senha_operador, id_atendimento, data, hor
 
 
 
-# ------------------ CASO 1: LISTAR CONSULTAS AGENDADAS ------------------
+# CONSULTAS
 
 def consultas_agendadas(email_operador, senha_operador, email_medico, data=None, status=None):
     # autenticar (qualquer user válido pode acessar, mas você pode restringir aqui)
@@ -243,8 +231,6 @@ def consultas_agendadas(email_operador, senha_operador, email_medico, data=None,
     return to_plain(ok(mensagem="Consultas encontradas", consultas=consultas, code=200))
 
 
-# ------------------ CASO 2: AGENDAR CONSULTA (criar appointment) ------------------
-
 def agendar_consulta(
     perfil_operador,
     email_operador,
@@ -255,7 +241,7 @@ def agendar_consulta(
     numero_cartao=None,
     data_validade=None,
 ):
-    # autenticar operador e checar perfil
+
     u = auth_operador(email_operador, senha_operador, perfil_operador_esperado=perfil_operador)
     if not u:
         return fail("Credenciais inválidas ou perfil não confere", 401)
@@ -264,20 +250,16 @@ def agendar_consulta(
     if perfil not in ("admin", "paciente", "recepcionista"):
         return fail("Perfil sem permissão para agendar", 403)
     
-    # validar schedule (id_consulta) e disponibilidade
     schedule = get_schedule_by_id(id_atendimento)
     if not schedule:
         return fail("Consulta não encontrada", 404)
 
 
-    # determinar qual paciente será usado
     if perfil == "paciente":
-        # paciente agenda para si mesmo
         patient_id = get_patient_id_by_user_id(u["user_id"])
         if not patient_id:
             return fail("Paciente não encontrado", 404)
     else:
-        # admin/recepcionista agenda para um paciente informado
         if not email_paciente:
             return fail("Admin/Recepcionista deve informar email_paciente", 400)
 
@@ -285,7 +267,6 @@ def agendar_consulta(
         if not patient_id:
             return fail("Paciente não encontrado", 404)
 
-    # validar forma de pagamento
     fp = forma_pagamento.strip().lower()
     insurance_id = None
 
@@ -314,7 +295,6 @@ def agendar_consulta(
     if not schedule["is_available"]:
         return fail("Horário indisponível", 409)
 
-    # criar appointment e marcar schedule como indisponível
     appt = insert_appointment(
         patient_id=patient_id,
         schedule_id=id_atendimento,
@@ -327,19 +307,16 @@ def agendar_consulta(
 
 
 def atualizar_status_consulta(perfil_operador, email_operador, senha_operador, id_consulta, status):
-    # --- 0) validar status recebido ---
     status_db = map_status_cli_to_db(status)
     if not status_db:
         return fail("Status inválido. Use: confirmado, concluido, cancelado.", 400)
 
-    # --- 1) autenticar usuário ---
     operador = get_user(email_operador, senha_operador)
     if not operador:
         return fail("Credenciais inválidas", 401)
 
-    # --- 2) validar perfil informado vs perfil real ---
     perfil_req = (perfil_operador or "").strip().upper()
-    perfil_real = operador["user_type"]  # vem do enum do banco: ADMIN, MEDICO, PACIENTE, RECEPCIONISTA
+    perfil_real = operador["user_type"] 
 
     if perfil_req != perfil_real:
         return fail(
@@ -347,7 +324,6 @@ def atualizar_status_consulta(perfil_operador, email_operador, senha_operador, i
             403
         )
 
-    # --- 3) regras de permissão por perfil ---
     if perfil_real == "RECEPCIONISTA":
         if status_db != "CANCELADO":
             return fail("Recepcionista só pode alterar o status para 'cancelado'.", 403)
@@ -360,14 +336,12 @@ def atualizar_status_consulta(perfil_operador, email_operador, senha_operador, i
         return fail("Paciente não tem permissão para alterar o status da consulta.", 403)
 
     elif perfil_real == "ADMIN":
-        # admin pode todos os 3 que você definiu
         if status_db not in ("CONFIRMADO", "CONCLUÍDO", "CANCELADO"):
             return fail("Status inválido.", 400)
 
     else:
         return fail("Perfil inválido.", 400)
 
-    # --- 4) carregar consulta (appointment) + schedule ---
     try:
         appointment_id = int(id_consulta)
     except (TypeError, ValueError):
@@ -377,7 +351,6 @@ def atualizar_status_consulta(perfil_operador, email_operador, senha_operador, i
     if not appt:
         return fail("Consulta não encontrada.", 404)
 
-    # --- 5) regra extra: médico só mexe nas próprias consultas ---
     if perfil_real == "MEDICO":
         doctor_id = get_doctor_by_user_id(operador["user_id"])["doctor_id"]
         if not doctor_id:
@@ -385,19 +358,14 @@ def atualizar_status_consulta(perfil_operador, email_operador, senha_operador, i
         if doctor_id != appt["doctor_id"]:
             return fail("Médico não pode alterar consultas de outro médico.", 403)
 
-    # --- 6) evitar mudanças inválidas ---
-    # Ex: não permitir "confirmar" consulta já concluída/cancelada
     status_atual = appt["status"]
     if status_atual in ("CONCLUÍDO", "CANCELADO"):
         return fail(f"Não é possível alterar status: consulta está {status_atual}.", 409)
 
-    # --- 7) atualizar status ---
     updated = update_appointment_status(appointment_id, status_db)
     if not updated:
         return fail("Falha ao atualizar status.", 500)
 
-    # --- 8) efeitos colaterais ---
-    # Se cancelar, libera o schedule para novo agendamento
     if status_db == "CANCELADO":
         set_schedule_available(appt["schedule_id"], True)
 
@@ -407,7 +375,7 @@ def atualizar_status_consulta(perfil_operador, email_operador, senha_operador, i
 
 
 
-# ------------------ BOOT ------------------
+# BOOT
 
 def main():
     server = SimpleXMLRPCServer(("0.0.0.0", 7001), allow_none=True, logRequests=True)
