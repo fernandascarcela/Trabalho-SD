@@ -25,29 +25,6 @@ services:
      networks:
         - messaging-network
 
-  interface_usuarios:
-    container_name: interface_usuarios
-    build: ./interfaces/interface_usuarios
-    ports:
-      - "5001:5001"
-    environment:
-      - SERVICO_HOST=servico_usuarios
-      - SERVICO_PORT=6001
-    depends_on:
-      - servico_usuarios
-    networks:
-        - persistence-network
-
-  interface_agendamento:
-    build: ./interfaces/interface_agendamento
-    ports:
-      - "5002:5002"
-    environment:
-      - SERVICO_HOST=servico_agendamento
-      - SERVICO_PORT=6002
-    depends_on:
-      - servico_agendamento
-
   notification-service:
     container_name: notification-service
     build: ./servicos/servico_notificacoes
@@ -76,11 +53,6 @@ services:
     networks:
       - persistence-network
 
-
-  servico_agendamento:
-    build: ./servicos/agendamento
-    ports:
-      - "6002:6002"
 
 networks:
   persistence-network:

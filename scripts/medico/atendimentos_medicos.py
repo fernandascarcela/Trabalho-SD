@@ -1,7 +1,7 @@
 import argparse
 import requests
 import sys
-from utils.validacoes import verificar_credenciais, data_valida, horario_valido, eh_int
+from scripts.utils.validacoes import verificar_credenciais, data_valida, horario_valido, eh_int
 
 
 def criar_atendimento(args):
@@ -42,7 +42,7 @@ def criar_atendimento(args):
 
     try:
         resp = requests.post(
-            f"http://localhost:5001/{endpoint}/atendimentos/criar",
+            f"http://localhost:5002/{endpoint}/atendimentos/criar",
             json=payload
         )
         print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
@@ -76,7 +76,7 @@ def excluir_atendimento(args):
 
     try:
         resp = requests.post(
-            f"http://localhost:5001/{endpoint}/atendimentos/excluir",
+            f"http://localhost:5002/{endpoint}/atendimentos/excluir",
             json=payload
         )
         print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
@@ -97,7 +97,7 @@ def listar_atendimentos(args):
     
     try:
         resp = requests.post(
-            f"http://localhost:5001/atendimentos/listar",
+            f"http://localhost:5002/atendimentos/listar",
             json=payload
         )
         print(f"\n>>> Resposta do Servidor (LISTA DE ATENDIMENTOS):")
@@ -145,7 +145,7 @@ def editar_atendimento(args):
     endpoint = "admin" if args.perfil_operador == "admin" else "medico"
     try:
         resp = requests.post(
-            f"http://localhost:5001/{endpoint}/atendimentos/editar",
+            f"http://localhost:5002/{endpoint}/atendimentos/editar",
             json=payload
         )
         print(f"\n>>> Resposta do Servidor ({args.perfil_operador.upper()}):")
