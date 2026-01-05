@@ -1,6 +1,6 @@
 from xmlrpc.server import SimpleXMLRPCServer
 
-from servicos.servico_agendamento.database import (
+from database import (
     admin_create_schedule,
     check_conflit_schedule,
     get_appointment_with_schedule,
@@ -22,7 +22,7 @@ from servicos.servico_agendamento.database import (
     get_user,
     insert_schedule,
 )
-from servicos.servico_agendamento.utils.utils import (
+from utils.utils import (
     auth_operador, 
     map_status_cli_to_db,
     normalizar_data, 

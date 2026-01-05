@@ -35,6 +35,24 @@ services:
         - persistence-network
         - messaging-network
 
+  servico_agendamento:
+    build: ./servicos/servico_agendamento
+    container_name: servico_agendamento
+    environment:
+      DB_HOST: postgres
+      DB_NAME: clinic_management_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_PORT: 5432
+    ports:
+      - "7001:7001"
+    depends_on:
+      - postgres
+    volumes:
+      - ./servicos/servico_agendamento:/app
+    networks:
+      - persistence-network
+
   servico_usuarios:
     build: ./servicos/servico_usuarios
     container_name: servico_usuarios
@@ -53,6 +71,35 @@ services:
     networks:
       - persistence-network
 
+  interface_usuarios:
+    build: ./interfaces/interface_usuarios
+    container_name: interface_usuarios
+    environment:
+      SERVICO_HOST: servico_usuarios
+      SERVICO_PORT: 6001
+    ports:
+      - "5001:5001"
+    depends_on:
+      - servico_usuarios
+    volumes:
+      - ./interfaces/interface_usuarios:/app
+    networks:
+      - persistence-network
+
+  interface_agendamento:
+    build: ./interfaces/interface_agendamento
+    container_name: interface_agendamento
+    environment:
+      AGENDAMENTO_RPC_URL: http://servico_agendamento:7001
+    ports:
+      - "5002:5002"
+    depends_on:
+      - servico_agendamento
+    volumes:
+      - ./interfaces/interface_agendamento:/app
+    networks:
+      - persistence-network
+
 
 networks:
   persistence-network:
@@ -60,4 +107,3 @@ networks:
     
   messaging-network:
     driver: bridge
-

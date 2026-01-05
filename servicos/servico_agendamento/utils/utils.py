@@ -2,7 +2,7 @@
 from datetime import date, datetime, time
 from psycopg2.extras import RealDictRow
 
-from servicos.servico_agendamento.database import get_user
+from database import get_user
 
 
 def normalizar_data(data_str: str) -> str:
