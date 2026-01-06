@@ -1,2 +1,4 @@
 flask
 grpcio
+grpcio-tools
+requests

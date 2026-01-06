@@ -34,6 +34,7 @@ services:
     networks:
         - persistence-network
         - messaging-network
+        - validation-network
 
   servico_agendamento:
     build: ./servicos/servico_agendamento
@@ -70,6 +71,22 @@ services:
       - ./servicos/servico_usuarios:/app
     networks:
       - persistence-network
+  
+  validation_service:
+    build: 
+      context: ./servicos/servico_validacao
+      dockerfile: Dockerfile
+    container_name: validation_service
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/clinic_management_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+    depends_on:
+      - postgres
+    ports:
+      - "50051:50051"
+    networks:
+      - validation-network
 
   interface_usuarios:
     build: ./interfaces/interface_usuarios
@@ -100,10 +117,25 @@ services:
     networks:
       - persistence-network
 
+  interface_validation:
+    build: ./interfaces/interface_validacao 
+    container_name: interface_validation
+    ports:
+      - "5003:5003" 
+    environment:
+      - GRPC_SERVER_ADDRESS=validation_service:50051 
+    depends_on:
+      - validation_service
+    networks:
+      - validation-network
+      - persistence-network
 
 networks:
   persistence-network:
     driver: bridge
     
   messaging-network:
+    driver: bridge
+  
+  validation-network:
     driver: bridge
