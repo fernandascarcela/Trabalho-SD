@@ -294,12 +294,15 @@ def agendar_consulta(
 
     if not schedule["is_available"]:
         return fail("Horário indisponível", 409)
+    
+    fp = fp.upper()
 
     appt = insert_appointment(
         patient_id=patient_id,
         schedule_id=id_atendimento,
         status="PENDENTE",
         insurance_id=insurance_id,
+        payment_method=fp
     )
     set_schedule_available(id_atendimento, False)
 

@@ -224,16 +224,16 @@ def set_schedule_available(schedule_id, is_available: bool):
             )
 
 
-def insert_appointment(patient_id, schedule_id, status="AGENDADO", insurance_id=None):
+def insert_appointment(patient_id, schedule_id, status="PENDENTE", insurance_id=None, payment_method="CARTAO"):
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                INSERT INTO appointment (patient_id, insurance_id, schedule_id, status)
+                INSERT INTO appointment (patient_id, insurance_id, schedule_id, status, payment_method)
                 VALUES (%s, %s, %s, %s::appointment_status_enum)
-                RETURNING appointment_id, patient_id, insurance_id, schedule_id, status
+                RETURNING appointment_id, patient_id, insurance_id, schedule_id, status, payment_method
                 """,
-                (patient_id, insurance_id, schedule_id, status),
+                (patient_id, insurance_id, schedule_id, status, payment_method),
             )
             return cur.fetchone()
 
