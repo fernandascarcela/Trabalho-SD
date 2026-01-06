@@ -6,6 +6,7 @@ from handlers import tratar_acao
 # Aceita conexões de qualquer container
 HOST = "0.0.0.0"
 PORT = 6001
+
 # Garante que apenas mensagens com este protocolo sejam processadas
 PROTOCOLO = "usuarios/1.0"
 
@@ -26,11 +27,12 @@ def tratar_requisicao(mensagem):
 
 
 def main():
+    # Cria o socket do servidor TCP
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as servidor:
         servidor.bind((HOST, PORT))
         servidor.listen()
 
-        print(f"✅ Serviço de Usuários rodando na porta {PORT}")
+        print(f"Serviço de Usuários rodando na porta {PORT}")
 
         while True:
             conexao, endereco = servidor.accept()

@@ -24,7 +24,7 @@ def validar(args):
 
     try:
         resp = requests.post(
-            f"http://localhost:5001/convenio/validacao",
+            f"http://localhost:5003/convenio/validacao",
             json=payload
         )
         print(f"\n>>> Resposta do Servidor: ")

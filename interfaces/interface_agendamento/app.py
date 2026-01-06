@@ -40,7 +40,6 @@ def criar_atendimento(perfil_operador):
         resposta = rpc_client.criar_atendimento(
             body["email_operador"],
             body["senha_operador"],
-            body["id_consulta"],
             body["email_medico"],
             body["data"],
             body["horario"]
@@ -122,14 +121,88 @@ def editar_atendimento(perfil_operador):
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
+
+
+# --------------- Consultas marcadas -------------------
+@app.post("/<perfil_operador>/consultas/agendadas")
+def consultas_agendadas(perfil_operador):
+    if perfil_operador not in ["admin", "medico", "paciente"]:
+        return erro("Perfil sem permissão para acessar consultas marcadas")
     
-@app.post("/<perfil_operador>/atendimentos/status")
-def atualizar_status_atendimento(perfil_operador):
+    if not request.is_json:
+        return erro("JSON inválido")
+
+    body = request.json
+    obrigatorios = ["perfil_operador", "email_operador", "senha_operador", "email_medico"]
+
+    if not all(c in body for c in obrigatorios):
+        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
+
+    try:
+        resposta = rpc_client.consultas_agendadas(
+            body["email_operador"],
+            body["senha_operador"],
+            body["email_medico"],
+            body["data"],
+            body["status"]
+        )
+        return jsonify(resposta), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.post("/agendamentos/agendar")
+def agendar_consulta():
+    if not request.is_json:
+        return erro("JSON inválido")
+
+    body = request.json
+    obrigatorios = ["perfil_operador", "email_operador", "senha_operador", "id_atendimento", "forma_pagamento"]
+
+    if body["perfil_operador"] not in ["admin", "recepcionista", "paciente"]:
+        return erro("Perfil sem permissão para agendar consultas")
+
+    if not all(c in body for c in obrigatorios):
+        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
+    
+    if body["forma_pagamento"] == "cartao":
+        if "numero_cartao" not in body or not body["numero_cartao"]:
+            return erro("Número do cartão é obrigatório")
+
+        if "data_validade" not in body or not body["data_validade"]:
+            return erro("Data de validade do cartão é obrigatória")
+
+    try:
+        resposta = rpc_client.agendar_consulta(
+            body["perfil_operador"],
+            body["email_operador"],
+            body["senha_operador"],
+            body["id_atendimento"],
+            body["forma_pagamento"],
+            body.get("email_paciente"),     
+            body.get("numero_cartao"),     
+            body.get("data_validade"),  
+
+        )
+        return jsonify(resposta), 200
+
+    except Exception as e:
+        print("Não veio JSON. Erro ao fazer resp.json():", e)
+
+
+    
+    #Serviço: se a forma de pagamento for cartão, verificar se a data de validade é válida
+    #Serviço: se a forma de pagamento for convenio, verificar através do email do paciente \
+                # se ele tiver sido validado através do script validacao_convenio, agenda, caso contrario, nao agenda
+
+
+@app.post("/<perfil_operador>/consulta/status")
+def atualizar_status_consulta(perfil_operador):
     if not request.is_json:
         return jsonify({"erro": "JSON inválido"}), 400
 
     body = request.json
-    obrigatorios = ["perfil_operador", "email_operador", "senha_operador", "id_atendimento", "status"]
+    obrigatorios = ["perfil_operador", "email_operador", "senha_operador", "id_consulta", "status"]
 
     if not all(c in body for c in obrigatorios):
         return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
@@ -165,86 +238,17 @@ def atualizar_status_atendimento(perfil_operador):
         return jsonify({"erro": "Perfil inválido."}), 400
     
     try:
-        resposta = rpc_client.atualizar_status_atendimento(
-            body["perfil_operador"],
-            body["email_operador"],
-            body["senha_operador"],
-            body["id_atendimento"],
-            body["status"]
-        )
-        return jsonify(resposta), 200
-
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
-
-# --------------- Consultas marcadas -------------------
-@app.post("/<perfil_operador>/consultas/agendadas")
-def consultas_agendadas(perfil_operador):
-    if perfil_operador not in ["admin", "medico", "paciente"]:
-        return erro("Perfil sem permissão para acessar consultas marcadas")
-    
-    if not request.is_json:
-        return erro("JSON inválido")
-
-    body = request.json
-    obrigatorios = ["perfil_operador", "email_operador", "senha_operador", "email_medico"]
-
-    if not all(c in body for c in obrigatorios):
-        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
-
-    try:
-        resposta = rpc_client.consultas_agendadas(
-            body["email_operador"],
-            body["senha_operador"],
-            body["email_medico"],
-            body["data"],
-            body["status"]
-        )
-        return jsonify(resposta), 200
-
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
-@app.post("/agendamentos/agendar")
-def agendar_consulta(perfil_operador):
-    if perfil_operador not in ["admin", "recepcionista", "paciente"]:
-        return erro("Perfil sem permissão para agendar consultas")
-    
-    if not request.is_json:
-        return erro("JSON inválido")
-
-    body = request.json
-    obrigatorios = ["perfil_operador", "email_operador", "senha_operador", "id_consulta", "forma_pagamento"]
-
-    if not all(c in body for c in obrigatorios):
-        return jsonify({"erro": "Campos obrigatórios ausentes"}), 400
-    
-    if body["forma_pagamento"] == "cartao":
-        if "numero_cartao" not in body or not body["numero_cartao"]:
-            return erro("Número do cartão é obrigatório")
-
-        if "data_validade" not in body or not body["data_validade"]:
-            return erro("Data de validade do cartão é obrigatória")
-
-    try:
-        resposta = rpc_client.agendar_consulta(
+        resposta = rpc_client.atualizar_status_consulta(
             body["perfil_operador"],
             body["email_operador"],
             body["senha_operador"],
             body["id_consulta"],
-            body["forma_pagamento"]
-
+            body["status"]
         )
         return jsonify(resposta), 200
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
     
-    #Serviço: se a forma de pagamento for cartão, verificar se a data de validade é válida
-    #Serviço: se a forma de pagamento for convenio, verificar através do email do paciente \
-                # se ele tiver sido validado através do script validacao_convenio, agenda, caso contrario, nao agenda
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)

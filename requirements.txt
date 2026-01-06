@@ -2,7 +2,5 @@ requests
 pika
 rich
 flask
-grpcio
-grpcio-tools
-re
-argparse
+grpcio==1.72.0
+grpcio-tools==1.72.0

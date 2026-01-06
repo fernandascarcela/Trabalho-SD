@@ -25,30 +25,7 @@ services:
      networks:
         - messaging-network
 
-  interface_usuarios:
-    container_name: interface_usuarios
-    build: ./interfaces/interface_usuarios
-    ports:
-      - "5001:5001"
-    environment:
-      - SERVICO_HOST=servico_usuarios
-      - SERVICO_PORT=6001
-    depends_on:
-      - servico_usuarios
-    networks:
-        - persistence-network
-
-  interface_agendamento:
-    build: ./interfaces/interface_agendamento
-    ports:
-      - "5002:5002"
-    environment:
-      - SERVICO_HOST=servico_agendamento
-      - SERVICO_PORT=6002
-    depends_on:
-      - servico_agendamento
-
-  notification-service:
+  notification_service:
     container_name: notification-service
     build: ./servicos/servico_notificacoes
     depends_on:
@@ -57,6 +34,25 @@ services:
     networks:
         - persistence-network
         - messaging-network
+        - validation-network
+
+  servico_agendamento:
+    build: ./servicos/servico_agendamento
+    container_name: servico_agendamento
+    environment:
+      DB_HOST: postgres
+      DB_NAME: clinic_management_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_PORT: 5432
+    ports:
+      - "7001:7001"
+    depends_on:
+      - postgres
+    volumes:
+      - ./servicos/servico_agendamento:/app
+    networks:
+      - persistence-network
 
   servico_usuarios:
     build: ./servicos/servico_usuarios
@@ -75,12 +71,64 @@ services:
       - ./servicos/servico_usuarios:/app
     networks:
       - persistence-network
-
-
-  servico_agendamento:
-    build: ./servicos/agendamento
+  
+  validation_service:
+    build: 
+      context: ./servicos/servico_validacao
+      dockerfile: Dockerfile
+    container_name: validation_service
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/clinic_management_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+    depends_on:
+      - postgres
     ports:
-      - "6002:6002"
+      - "50051:50051"
+    networks:
+      - validation-network
+
+  interface_usuarios:
+    build: ./interfaces/interface_usuarios
+    container_name: interface_usuarios
+    environment:
+      SERVICO_HOST: servico_usuarios
+      SERVICO_PORT: 6001
+    ports:
+      - "5001:5001"
+    depends_on:
+      - servico_usuarios
+    volumes:
+      - ./interfaces/interface_usuarios:/app
+    networks:
+      - persistence-network
+
+  interface_agendamento:
+    build: ./interfaces/interface_agendamento
+    container_name: interface_agendamento
+    environment:
+      AGENDAMENTO_RPC_URL: http://servico_agendamento:7001
+    ports:
+      - "5002:5002"
+    depends_on:
+      - servico_agendamento
+    volumes:
+      - ./interfaces/interface_agendamento:/app
+    networks:
+      - persistence-network
+
+  interface_validation:
+    build: ./interfaces/interface_validacao 
+    container_name: interface_validation
+    ports:
+      - "5003:5003" 
+    environment:
+      - GRPC_SERVER_ADDRESS=validation_service:50051 
+    depends_on:
+      - validation_service
+    networks:
+      - validation-network
+      - persistence-network
 
 networks:
   persistence-network:
@@ -88,4 +136,6 @@ networks:
     
   messaging-network:
     driver: bridge
-
+  
+  validation-network:
+    driver: bridge

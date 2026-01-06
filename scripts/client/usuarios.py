@@ -274,7 +274,6 @@ def listar_usuarios(args):
     except Exception as e:
         print(f"Erro de conexão: {e}")
 
-
 def main():
     parser = argparse.ArgumentParser(description="Sistema de Gestão de Usuários")
     subparsers = parser.add_subparsers(dest="comando")
@@ -333,7 +332,6 @@ def main():
         sys.exit(1)
 
     args.func(args)
-
 
 if __name__ == "__main__":
     main()

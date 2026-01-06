@@ -1,5 +1,4 @@
 CREATE TYPE user_type_enum AS ENUM ('PACIENTE', 'MEDICO', 'RECEPCIONISTA', 'ADMIN');
-CREATE TYPE weekday_enum AS ENUM ( 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA');
 CREATE TYPE appointment_status_enum AS ENUM ('AGENDADO', 'CONFIRMADO', 'PENDENTE', 'CANCELADO', 'CONCLUÍDO', 'REJEITADA');
 CREATE TYPE specialty_enum AS ENUM ('FISIOTERAPEUTA', 'NUTRICIONISTA', 'PISIQUIATRA', 'DERMATOLOGISTA', 'PEDIATRIA');
 
@@ -36,13 +35,33 @@ CREATE TABLE doctor (
 
 CREATE TABLE insurance (
     insurance_id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL
+    patient_id INT NOT NULL,
+    card_number VARCHAR(20) UNIQUE NOT NULL,
+    expiration_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'VALIDO',
+
+    CONSTRAINT fk_insurance_patient
+        FOREIGN KEY (patient_id)
+        REFERENCES patient(patient_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE insurance_specialty (
+    insurance_id INT NOT NULL,
+    specialty specialty_enum NOT NULL,
+
+    PRIMARY KEY (insurance_id, specialty),
+
+    CONSTRAINT fk_insurance_specialty_insurance
+        FOREIGN KEY (insurance_id)
+        REFERENCES insurance(insurance_id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE schedule (
     schedule_id SERIAL PRIMARY KEY,
     doctor_id INT NOT NULL, 
-    weekday weekday_enum NOT NULL,
+    schedule_date DATE NOT NULL,
     start_time TIME NOT NULL,
     specialty specialty_enum NOT NULL,
     is_available BOOLEAN DEFAULT TRUE, --flag de disponivel genter

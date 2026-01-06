@@ -5,12 +5,15 @@ import requests
 import argparse
 import sys
 
-
-RABBITMQ_HOST = "rabbitmq"
+# ---------------- CONFIGURAÇÕES ----------------
+RABBITMQ_HOST = "localhost"
 EXCHANGE_NAME = "notifications"
 
 USUARIOS_AUTH_URL = "http://localhost:5001/login"
+# -----------------------------------------------
 
+
+# ---------- AUTENTICAÇÃO ----------
 def validar_credenciais(email, senha):
     try:
         resp = requests.post(
@@ -29,25 +32,35 @@ def validar_credenciais(email, senha):
 
 # ---------- CONSUMIDOR ----------
 def iniciar_consumidor(email_usuario):
+    print(f"[*] Conectando ao RabbitMQ em {RABBITMQ_HOST}...")
+
     while True:
         try:
             connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
                     host=RABBITMQ_HOST,
-                    heartbeat=600
+                    heartbeat=600,
+                    blocked_connection_timeout=300
                 )
             )
             channel = connection.channel()
+
+            # Garante que o exchange existe
             channel.exchange_declare(
                 exchange=EXCHANGE_NAME,
                 exchange_type="fanout",
                 durable=True
             )
-            result = channel.queue_declare(
-                queue="",
-                exclusive=True
+
+            # Nome fixo da fila baseado no email
+            queue_name = f"fila_{email_usuario}"
+
+            channel.queue_declare(
+                queue=queue_name,
+                durable=True,
+                exclusive=False,
+                auto_delete=False
             )
-            queue_name = result.method.queue
 
             channel.queue_bind(
                 exchange=EXCHANGE_NAME,
@@ -57,14 +70,18 @@ def iniciar_consumidor(email_usuario):
             print("\nAguardando notificações...\n")
 
             def callback(ch, method, properties, body):
-                mensagem = json.loads(body)
+                try:
+                    mensagem = json.loads(body)
 
-                # FILTRA PELO EMAIL AUTENTICADO
-                if mensagem.get("email") == email_usuario:
-                    print("NOVA NOTIFICAÇÃO")
-                    print(f"Mensagem: {mensagem.get('message')}")
-                    print(f"Consulta ID: {mensagem.get('consultation_id')}")
-                    print("-" * 40)
+                    # Filtra mensagens apenas para este usuário
+                    if mensagem.get("email") == email_usuario:
+                        print("NOVA NOTIFICAÇÃO")
+                        print(f"Mensagem: {mensagem.get('message')}")
+                        print(f"Consulta ID: {mensagem.get('consultation_id')}")
+                        print("-" * 40)
+
+                except Exception as e:
+                    print(f"Erro ao ler mensagem: {e}")
 
             channel.basic_consume(
                 queue=queue_name,
@@ -75,26 +92,31 @@ def iniciar_consumidor(email_usuario):
             channel.start_consuming()
 
         except pika.exceptions.AMQPError as e:
-            print("Erro no RabbitMQ, tentando reconectar...", e)
+            print(f"Erro de conexão: {e}")
             time.sleep(5)
+        except KeyboardInterrupt:
+            print("\nEncerrando consumidor...")
+            break
 
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Sistema de Notificações")
-    parser.add_argument("email", help="Email do usuário")
-    parser.add_argument("senha", help="Senha do usuário")
+    parser = argparse.ArgumentParser(
+        description="Sistema de Notificações (Paciente)"
+    )
+    parser.add_argument("email", help="Email do paciente")
+    parser.add_argument("senha", help="Senha do paciente")
 
     args = parser.parse_args()
 
     email = args.email
     senha = args.senha
 
-    print("=== SISTEMA DE NOTIFICAÇÕES ===\n")
+    print("=== SISTEMA DE NOTIFICAÇÕES (PACIENTE) ===\n")
 
     if not validar_credenciais(email, senha):
-        print("\nCredenciais inválidas. Acesso negado.")
+        print("Credenciais inválidas. Acesso negado.")
         sys.exit(1)
 
-    print("\nLogin realizado com sucesso.")
+    print("Login realizado com sucesso.")
     iniciar_consumidor(email)
