@@ -25,7 +25,7 @@ services:
      networks:
         - messaging-network
 
-  notification-service:
+  notification_service:
     container_name: notification-service
     build: ./servicos/servico_notificacoes
     depends_on:

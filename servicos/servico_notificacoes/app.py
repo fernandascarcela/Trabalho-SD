@@ -15,6 +15,7 @@ DB_CONFIG = {
 }
 
 def connect_rabbitmq():
+    print("mens")
     while True:
         try:
             connection = pika.BlockingConnection(
@@ -35,6 +36,7 @@ def connect_rabbitmq():
             time.sleep(5)
 
 def connect_database():
+    print("data")
     while True:
         try:
             connection = psycopg2.connect(**DB_CONFIG)
@@ -46,6 +48,7 @@ def connect_database():
             time.sleep(5)
 
 def fetch_notification(cursor, notification_id):
+    print("usul")
     cursor.execute("""
         SELECT n.notification_id,
                n.message,
@@ -96,4 +99,5 @@ def listen_notifications():
                 publish_notification(data)
 
 if __name__ == "__main__":
+    print("ini")
     listen_notifications()
