@@ -2,18 +2,15 @@ import pika
 import json
 import time
 import requests
-import getpass
+import argparse
+import sys
 
-# ---------------- CONFIGURAÇÕES ----------------
+
 RABBITMQ_HOST = "rabbitmq"
 EXCHANGE_NAME = "notifications"
 
 USUARIOS_AUTH_URL = "http://localhost:5001/login"
-# -----------------------------------------------
 
-
-
-# ---------- AUTENTICAÇÃO ----------
 def validar_credenciais(email, senha):
     try:
         resp = requests.post(
@@ -41,15 +38,11 @@ def iniciar_consumidor(email_usuario):
                 )
             )
             channel = connection.channel()
-
-            # Garante que o exchange existe
             channel.exchange_declare(
                 exchange=EXCHANGE_NAME,
                 exchange_type="fanout",
                 durable=True
             )
-
-            # Fila exclusiva para este consumidor
             result = channel.queue_declare(
                 queue="",
                 exclusive=True
@@ -88,14 +81,20 @@ def iniciar_consumidor(email_usuario):
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
-    print("=== SISTEMA DE NOTIFICAÇÕES ===\n")
+    parser = argparse.ArgumentParser(description="Sistema de Notificações")
+    parser.add_argument("email", help="Email do usuário")
+    parser.add_argument("senha", help="Senha do usuário")
 
-    email = input("Email: ").strip()
-    senha = getpass.getpass("Senha: ")
+    args = parser.parse_args()
+
+    email = args.email
+    senha = args.senha
+
+    print("=== SISTEMA DE NOTIFICAÇÕES ===\n")
 
     if not validar_credenciais(email, senha):
         print("\nCredenciais inválidas. Acesso negado.")
-        exit(1)
+        sys.exit(1)
 
     print("\nLogin realizado com sucesso.")
     iniciar_consumidor(email)

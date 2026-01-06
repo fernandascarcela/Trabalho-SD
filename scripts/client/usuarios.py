@@ -311,7 +311,7 @@ def main():
 
     # ---- Listar ----
     listar = subparsers.add_parser("listar")
-    listar.add_argument("perfil_operador", choices=["admin"])
+    listar.add_argument("perfil_operador", choices=["admin", "recepcionista"])
     listar.add_argument("email_operador")
     listar.add_argument("senha_operador")
     listar.add_argument("role", choices=["paciente", "medico", "recepcionista", "admin"])
