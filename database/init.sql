@@ -1,6 +1,7 @@
 CREATE TYPE user_type_enum AS ENUM ('PACIENTE', 'MEDICO', 'RECEPCIONISTA', 'ADMIN');
 CREATE TYPE appointment_status_enum AS ENUM ('AGENDADO', 'CONFIRMADO', 'PENDENTE', 'CANCELADO', 'CONCLUÍDO', 'REJEITADA');
 CREATE TYPE specialty_enum AS ENUM ('FISIOTERAPEUTA', 'NUTRICIONISTA', 'PISIQUIATRA', 'DERMATOLOGISTA', 'PEDIATRIA');
+CREATE TYPE payment_method_enum AS ENUM ('CARTAO', 'CONVENIO');
 
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
@@ -75,6 +76,7 @@ CREATE TABLE schedule (
 CREATE TABLE appointment (
     appointment_id SERIAL PRIMARY KEY,
     patient_id INT NOT NULL,
+    payment_method payment_method_enum NOT NULL,
     insurance_id INT,
     schedule_id INT NOT NULL,
     status appointment_status_enum DEFAULT 'AGENDADO',
