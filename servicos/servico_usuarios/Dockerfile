@@ -13,11 +13,8 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia o requirements primeiro (cache)
-COPY requirements.txt .
-
 # Instala dependências Python
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir psycopg2-binary
 
 # Copia o resto do código
 COPY . .

@@ -33,8 +33,29 @@ def tratar_acao(acao, dados):
         return listar_usuarios(dados)
     elif acao == "excluir_usuario":
         return excluir_usuario(dados)
+    elif acao == "login_usuario":
+        return login_usuario(dados)
     else:
         return {"erro": "Ação desconhecida"}
+
+def login_usuario(dados):
+    '''
+    Login de usuário
+    :param dados: Deve conter email, senha e perfil do usuário.
+    '''
+    email = dados["email"]
+    senha = dados["senha"]
+    perfil = dados["perfil"]
+
+    if not email or not senha or not perfil:
+        return {"erro": "Campos obrigatórios ausentes"}
+
+    valido, mensagem = validar_operador(email, senha, perfil)
+
+    if not valido:
+        return {"erro": mensagem}
+
+    return {"sucesso": "Login realizado com sucesso"}
 
 # É basicamente o login do operador que está tentando fazer a ação
 def validar_operador(email, senha, perfil):
@@ -65,10 +86,18 @@ def validar_usuario(email, role):
 
 def criar_usuario(dados):
     '''
-        Administrador pode criar qualquer usuário
-        Recepcionista só pode criar pacientes e médicos
-        Paciente não pode criar usuários
-        Médico não pode criar usuários
+    Função para registrar usuários no sistema
+
+    :param dados:
+    Deve conter os campos:
+    - email_operador, senha_operador, role, nome, email, senha e as informações
+    adicionais conforme o tipo de usuário.
+
+    Regras de negócio:
+    - Administrador pode criar qualquer usuário
+    - Recepcionista só pode criar pacientes e médicos
+    - Paciente não pode criar usuários
+    - Médico não pode criar usuários
     '''
 
     perfil = dados["perfil_operador"]
@@ -132,6 +161,20 @@ def criar_usuario(dados):
         return {"erro": "Ação inválida"}
 
 def editar_usuario(dados):
+    '''
+    Função para edição de usuários
+    
+    :param dados:
+    Deve conter os campos:
+    - Se for auto_edição: email_operador, senha_operador, role e a informação que deseja alterar
+    - Caso contrário: email_operador, senha_operador, role, email (de quem sofre as alterações) e a informação que deseja alterar.
+
+    Regras de negócio:
+    - Administrador pode editar qualquer usuário
+    - Recepcionista não pode se auto editar mas pode editar médicos e pacientes
+    - Paciente e Médico pode somente se auto editar
+    '''
+
     perfil_operador = dados["perfil_operador"]
     email_operador = dados["email_operador"]
     senha_operador = dados["senha_operador"]
@@ -219,10 +262,15 @@ def listar_usuarios(dados):
 
 def excluir_usuario(dados):
     '''
+    Função para excluir usuários
+    
+    :param dados:
+    Deve conter os campos: email_operador, senha_operador, role e email (de quem sofrerá a exclusão) 
+
+    Regras de negócio:
         Administrador pode excluir qualquer usuário
         Recepcionista só pode excluir pacientes e médicos
-        Paciente não pode excluir usuários
-        Médico não pode excluir usuários
+        Paciente e Médico não pode excluir usuários
     '''
 
     perfil = dados["perfil_operador"]
