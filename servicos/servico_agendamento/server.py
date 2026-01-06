@@ -298,7 +298,7 @@ def agendar_consulta(
     appt = insert_appointment(
         patient_id=patient_id,
         schedule_id=id_atendimento,
-        status="AGENDADO",
+        status="PENDENTE",
         insurance_id=insurance_id,
     )
     set_schedule_available(id_atendimento, False)
@@ -329,7 +329,7 @@ def atualizar_status_consulta(perfil_operador, email_operador, senha_operador, i
             return fail("Recepcionista só pode alterar o status para 'cancelado'.", 403)
 
     elif perfil_real == "MEDICO":
-        if status_db not in ("CONCLUÍDO", "CANCELADO"):
+        if status_db not in ("AGENDADO", "CONCLUÍDO", "CANCELADO"):
             return fail("Médico só pode alterar o status para 'concluido' ou 'cancelado'.", 403)
 
     elif perfil_real == "PACIENTE":
