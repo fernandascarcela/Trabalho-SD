@@ -107,7 +107,14 @@ def main():
     agendar.add_argument("--numero_cartao", default=None)
     agendar.add_argument("--data_validade", default=None)
 
+    cancelar = subparsers.add_parser("cancelar")
+    cancelar.add_argument("perfil_operador", choices=["admin", "paciente", "recepcionista"])
+    cancelar.add_argument("email_operador")
+    cancelar.add_argument("senha_operador")
+    cancelar.add_argument("id_atendimento", type=int)
+
     agendar.set_defaults(func=agendar_consulta)
+    cancelar.set_defaults(func=cancelar_consulta)
 
     args = parser.parse_args()
 
