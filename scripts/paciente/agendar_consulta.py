@@ -1,7 +1,7 @@
 import argparse
 import requests
 import sys
-from scripts.utils.validacoes import verificar_credenciais, eh_int
+from utils.validacoes import verificar_credenciais, eh_int
 
 def agendar_consulta(args):
     # ---- Permissões ----
@@ -13,8 +13,8 @@ def agendar_consulta(args):
     if not verificar_credenciais(args):
         return
     
-    if not eh_int(args.id_atendimento):
-        print("ERRO: id_atendimento deve ser um número inteiro.")
+    if not eh_int(args.id_consulta):
+        print("ERRO: id_consulta deve ser um número inteiro.")
         return
 
     # ---- Perfil admin / recepcionista ----
@@ -33,13 +33,18 @@ def agendar_consulta(args):
             print("ERRO: Cartão exige número e data de validade.")
             return
 
+    elif args.forma_pagamento == "convenio":
+        if not args.titular_convenio or not args.numero_convenio:
+            print("ERRO: Convênio exige titular e número.")
+            return
+
     # ---- Payload ----
     payload = {
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
         "senha_operador": args.senha_operador,
         "email_paciente": args.email_paciente,
-        "id_atendimento": args.id_atendimento,
+        "id_consulta": args.id_consulta,
         "forma_pagamento": args.forma_pagamento
     }
 
@@ -51,7 +56,7 @@ def agendar_consulta(args):
 
     try:
         resp = requests.post(
-            "http://localhost:5002/agendamentos/agendar",
+            "http://localhost:5001/agendamentos/agendar",
             json=payload,
             timeout=5
         )
@@ -66,8 +71,8 @@ def cancelar_consulta(args):
     if not verificar_credenciais(args):
         return
     
-    if not eh_int(args.id_atendimento):
-        print("ERRO: id_atendimento deve ser um número inteiro.")
+    if not eh_int(args.id_consulta):
+        print("ERRO: id_consulta deve ser um número inteiro.")
         return
 
     # ---- Payload ----
@@ -75,14 +80,14 @@ def cancelar_consulta(args):
         "perfil_operador": args.perfil_operador,
         "email_operador": args.email_operador,
         "senha_operador": args.senha_operador,
-        "id_atendimento": args.id_atendimento,
+        "id_consulta": args.id_consulta,
 
         #verificar no serviço se o ID sendo passado existe, e se corresponde ao paciente ou medico associado
     }
 
     try:
         resp = requests.post(
-            "http://localhost:5002/agendamentos/cancelar",
+            "http://localhost:5001/agendamentos/cancelar",
             json=payload,
             timeout=5
         )
@@ -101,20 +106,19 @@ def main():
     agendar.add_argument("perfil_operador", choices=["admin", "paciente", "recepcionista"])
     agendar.add_argument("email_operador")
     agendar.add_argument("senha_operador")
-    agendar.add_argument("id_atendimento", type=int)
+    agendar.add_argument("id_consulta", type=int)
     agendar.add_argument("forma_pagamento", choices=["cartao", "convenio"])
     agendar.add_argument("--email_paciente", default=None)
     agendar.add_argument("--numero_cartao", default=None)
     agendar.add_argument("--data_validade", default=None)
 
     cancelar = subparsers.add_parser("cancelar")
-    cancelar.add_argument("perfil_operador", choices=["admin", "paciente", "recepcionista"])
+    cancelar.add_argument("perfil_operador", choices=["admin", "recepcionista, paciente, medico"])
     cancelar.add_argument("email_operador")
     cancelar.add_argument("senha_operador")
-    cancelar.add_argument("id_atendimento", type=int)
+    cancelar.add_argument("id_consulta", type=int)
 
     agendar.set_defaults(func=agendar_consulta)
-    cancelar.set_defaults(func=cancelar_consulta)
 
     args = parser.parse_args()
 
