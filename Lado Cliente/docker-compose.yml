@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  cliente:
+    build: .
+    container_name: cliente
+    stdin_open: true
+    tty: true
+    networks:
+      - rede_mensageria
+      - rede_persistente
+
+networks:
+  # Rede para falar com o RabbitMQ
+  rede_mensageria:
+    external: true
+    name: ladoservidor_messaging-network 
+
+  # Rede para falar com as Interfaces (Login)
+  rede_persistente:
+    external: true
+    name: ladoservidor_persistence-network
