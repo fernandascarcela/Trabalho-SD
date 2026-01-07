@@ -1,6 +1,0 @@
-requests
-pika
-rich
-flask
-grpcio==1.72.0
-grpcio-tools==1.72.0
